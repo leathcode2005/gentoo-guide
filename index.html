@@ -258,6 +258,19 @@ ping -c 3 gentoo.org
 <div class="code-wrap"><button class="copy-btn" type="button">Copy</button><pre><code class="language-bash">
 emerge-webrsync
 </code></pre></div>
+<h3>Handling Masked Packages (~amd64)</h3>
+<p>Some packages in the Portage tree are marked as "testing" for the amd64 architecture (<code>~amd64</code>) and are not installed by default on a stable profile. If an <code>emerge</code> command (in this step or later) fails with output like:</p>
+<div class="code-wrap"><button class="copy-btn" type="button">Copy</button><pre><code class="language-text">
+The following keyword changes are necessary to proceed:
+#required by ...
+=category/package-name-1.2.3 ~amd64
+</code></pre></div>
+<p>You need to tell Portage that you accept the testing version of that package. Use <code>/etc/portage/package.accept_keywords/</code> as a directory (consistent with <code>/etc/portage/package.use/</code> used elsewhere in this guide):</p>
+<div class="code-wrap"><button class="copy-btn" type="button">Copy</button><pre><code class="language-bash">
+mkdir -p /etc/portage/package.accept_keywords
+echo "category/package-name ~amd64" &gt; /etc/portage/package.accept_keywords/package-name
+</code></pre></div>
+<p>Replace <code>category/package-name</code> with the <code>category/name</code> portion of the atom shown in the Portage output — omit the leading <code>=</code> and the version number (e.g. use <code>sys-kernel/gentoo-kernel</code>, not <code>=sys-kernel/gentoo-kernel-6.6.21</code>). Using the unversioned form is preferred because it accepts any testing version of that package, not just one specific release. The <code>~amd64</code> keyword means the package is in the testing branch for amd64; accepting it for individual packages is safe, especially when Portage itself suggests it.</p>
 <p>Set profile:</p>
 <div class="code-wrap"><button class="copy-btn" type="button">Copy</button><pre><code class="language-bash">
 eselect profile list
