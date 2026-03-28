@@ -229,7 +229,14 @@ EOF
 <div class="code-wrap"><button class="copy-btn" type="button">Copy</button><pre><code class="language-bash">
 cp --dereference /etc/resolv.conf /mnt/gentoo/etc/
 </code></pre></div>
-<p>Mount the necessary pseudo-filesystems:</p>
+<p>Enter the chroot using <code>arch-chroot</code> (preferred — handles pseudo-filesystem mounts automatically):</p>
+<div class="code-wrap"><button class="copy-btn" type="button">Copy</button><pre><code class="language-bash">
+arch-chroot /mnt/gentoo
+source /etc/profile
+export PS1="(chroot) ${PS1}"
+</code></pre></div>
+<p><strong>Note:</strong> <code>arch-chroot</code> is available on Gentoo's official install media and handles pseudo-filesystem mounts automatically. If it is not available on your live environment, use the manual method below instead.</p>
+<p>Manual fallback — mount pseudo-filesystems and enter chroot by hand:</p>
 <div class="code-wrap"><button class="copy-btn" type="button">Copy</button><pre><code class="language-bash">
 mount --types proc /proc /mnt/gentoo/proc
 mount --rbind /sys /mnt/gentoo/sys
@@ -238,14 +245,10 @@ mount --rbind /dev /mnt/gentoo/dev
 mount --make-rslave /mnt/gentoo/dev
 mount --bind /run /mnt/gentoo/run
 mount --make-slave /mnt/gentoo/run
-</code></pre></div>
-<p>Enter target system:</p>
-<div class="code-wrap"><button class="copy-btn" type="button">Copy</button><pre><code class="language-bash">
 chroot /mnt/gentoo /bin/bash
 source /etc/profile
 export PS1="(chroot) ${PS1}"
 </code></pre></div>
-<p><strong>Note:</strong> The manual pseudo-filesystem mounts above are the standard Gentoo method. <code>arch-chroot</code> is an Arch Linux tool and is <strong>not</strong> available on Gentoo install media.</p>
 <p>Verify network connectivity inside the chroot:</p>
 <div class="code-wrap"><button class="copy-btn" type="button">Copy</button><pre><code class="language-bash">
 ping -c 3 gentoo.org
@@ -286,13 +289,14 @@ eselect locale set &lt;en_US-utf8-number&gt;
 env-update &amp;&amp; source /etc/profile
 </code></pre></div>
 <h2>8) Kernel</h2>
-<p>Configure installkernel to use dracut:</p>
+<p>Configure installkernel to use dracut and efistub:</p>
 <div class="code-wrap"><button class="copy-btn" type="button">Copy</button><pre><code class="language-bash">
 mkdir -p /etc/portage/package.use
 cat &gt; /etc/portage/package.use/installkernel &lt;&lt;'EOF'
-sys-kernel/installkernel dracut
+sys-kernel/installkernel dracut efistub
 EOF
 </code></pre></div>
+<p><strong>Note:</strong> The <code>efistub</code> flag tells installkernel to automatically copy the kernel and initramfs to the EFI System Partition on every kernel install, so future kernel updates require no manual file copying.</p>
 <p>Set root UUID for initramfs:</p>
 <div class="code-wrap"><button class="copy-btn" type="button">Copy</button><pre><code class="language-bash">
 ROOT_UUID=$(blkid -s UUID -o value /dev/sda3)
@@ -350,20 +354,24 @@ rc-update add chronyd default
 <div class="code-wrap"><button class="copy-btn" type="button">Copy</button><pre><code class="language-bash">
 emerge --ask sys-boot/efibootmgr
 </code></pre></div>
-<p>Copy kernel and initramfs to ESP:</p>
+<p><strong>Note:</strong> installkernel with the <code>efistub</code> USE flag (configured in Step 8) already placed the kernel and initramfs on the ESP under <code>/efi/EFI/Gentoo/</code> during the <code>emerge</code> in Step 8. No manual copying is needed.</p>
+<p>Check the exact filenames installkernel placed on the ESP:</p>
 <div class="code-wrap"><button class="copy-btn" type="button">Copy</button><pre><code class="language-bash">
-mkdir -p /efi/EFI/Gentoo
-cp /boot/vmlinuz-*-gentoo-dist /efi/EFI/Gentoo/bzImage.efi
-cp /boot/initramfs-*-gentoo-dist.img /efi/EFI/Gentoo/initramfs.img
+ls /efi/EFI/Gentoo/
 </code></pre></div>
-<p><strong>Note:</strong> If multiple kernel versions are installed, the glob may match more than one file. Run <code>ls /boot/</code> first to confirm which files exist and adjust the pattern if needed.</p>
-<p>Re-derive the root UUID (in case the shell variable from Step 8 is no longer in scope) and create the firmware boot entry:</p>
+<p>Re-derive the root UUID (in case the shell variable from Step 8 is no longer in scope) and create the persistent firmware boot entry. Replace <code>&lt;vmlinuz-file&gt;</code> and <code>&lt;initramfs-file&gt;</code> with the exact filenames shown by <code>ls</code> above:</p>
 <div class="code-wrap"><button class="copy-btn" type="button">Copy</button><pre><code class="language-bash">
 ROOT_UUID=$(blkid -s UUID -o value /dev/sda3)
 [ -z "${ROOT_UUID}" ] &amp;&amp; echo "ERROR: could not read UUID for /dev/sda3 — check blkid output" &amp;&amp; exit 1
-efibootmgr --create --disk /dev/sda --part 1 --label "Gentoo" --loader "\\EFI\\Gentoo\\bzImage.efi" --unicode "initrd=\\EFI\\Gentoo\\initramfs.img root=UUID=${ROOT_UUID} rw"
+efibootmgr --create --disk /dev/sda --part 1 --label "Gentoo" --loader "\\EFI\\Gentoo\\&lt;vmlinuz-file&gt;" --unicode "initrd=\\EFI\\Gentoo\\&lt;initramfs-file&gt; root=UUID=${ROOT_UUID} rw"
 </code></pre></div>
 <p><strong>Note on UUID vs PARTUUID:</strong> The fstab (Step 9) uses <code>PARTUUID</code> (partition-level identifier) while the kernel cmdline uses <code>UUID</code> (filesystem-level identifier). Both are valid and work independently; the kernel cmdline UUID is used by the initramfs to find the root filesystem before fstab is processed.</p>
+<h3>Kernel Updates</h3>
+<p>Future kernel updates are fully automatic. Just run:</p>
+<div class="code-wrap"><button class="copy-btn" type="button">Copy</button><pre><code class="language-bash">
+emerge --ask --verbose --update --deep --newuse @world
+</code></pre></div>
+<p>installkernel + dracut + efistub will rebuild the initramfs and copy the new kernel and initramfs to the ESP automatically. No manual steps are needed after the initial boot entry is created above.</p>
 <h2>11a) Video / GPU Drivers</h2>
 <p>Detect the installed GPU:</p>
 <div class="code-wrap"><button class="copy-btn" type="button">Copy</button><pre><code class="language-bash">
