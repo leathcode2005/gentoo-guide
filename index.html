@@ -91,6 +91,36 @@
     .copy-btn:active { transform: translateY(1px); }
     .copy-btn.ok { background: #134b2b; border-color: #2f7a51; }
     hr { border: 0; border-top: 1px solid var(--border); margin: 1.1rem 0; }
+    .disk-toggle {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      margin-top: 0.55rem;
+      flex-wrap: wrap;
+    }
+    .disk-toggle-label {
+      font-size: 0.84rem;
+      color: var(--muted);
+      font-weight: 500;
+      margin-right: 0.1rem;
+    }
+    .disk-btn {
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      border-radius: 6px;
+      padding: 0.22rem 0.65rem;
+      font-size: 0.82rem;
+      font-family: "JetBrains Mono", "Cascadia Mono", "SFMono-Regular", Consolas, monospace;
+      cursor: pointer;
+      transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+    }
+    .disk-btn:hover { background: #eef2f7; color: var(--text); }
+    .disk-btn.active {
+      background: var(--code-bg);
+      color: var(--code-text);
+      border-color: #3f4f62;
+    }
     @media (max-width: 680px) {
       .page { margin-top: 0.8rem; padding: 0 0.5rem 1.2rem; }
       .hero { position: static; }
@@ -104,6 +134,12 @@
       <header class="hero">
         <h1>Gentoo Installation Guide (OpenRC + UEFI)</h1>
         <p>Required steps only. Optimized for readability and copy/paste.</p>
+        <div class="disk-toggle">
+          <span class="disk-toggle-label">Disk:</span>
+          <button class="disk-btn active" type="button" data-disk="sda">sda</button>
+          <button class="disk-btn" type="button" data-disk="nvme0n1">nvme0n1</button>
+          <button class="disk-btn" type="button" data-disk="nvme1n1">nvme1n1</button>
+        </div>
       </header>
       <article>
 <h1>Gentoo Installation Guide (OpenRC + UEFI + ext4)</h1>
@@ -364,6 +400,41 @@ reboot
       }
       applyInlineCodeFromBackticks(document);
       attachCopyButtons();
+
+      // Disk-type toggle
+      var DISK_MAP = {
+        sda:     { disk: '/dev/sda',     p1: '/dev/sda1',      p2: '/dev/sda2',      p3: '/dev/sda3'      },
+        nvme0n1: { disk: '/dev/nvme0n1', p1: '/dev/nvme0n1p1', p2: '/dev/nvme0n1p2', p3: '/dev/nvme0n1p3' },
+        nvme1n1: { disk: '/dev/nvme1n1', p1: '/dev/nvme1n1p1', p2: '/dev/nvme1n1p2', p3: '/dev/nvme1n1p3' }
+      };
+      var BASE = DISK_MAP['sda'];
+
+      // Store original text for every <code> element after backtick processing
+      document.querySelectorAll('code').forEach(function (code) {
+        code.dataset.orig = code.textContent;
+      });
+
+      function applyDiskType(diskKey) {
+        var map = DISK_MAP[diskKey];
+        document.querySelectorAll('code').forEach(function (code) {
+          var text = code.dataset.orig;
+          // Replace partitions before bare disk name to avoid double-replacement
+          text = text.split(BASE.p1).join(map.p1);
+          text = text.split(BASE.p2).join(map.p2);
+          text = text.split(BASE.p3).join(map.p3);
+          text = text.split(BASE.disk).join(map.disk);
+          code.textContent = text;
+        });
+        document.querySelectorAll('.disk-btn').forEach(function (btn) {
+          btn.classList.toggle('active', btn.dataset.disk === diskKey);
+        });
+      }
+
+      document.querySelectorAll('.disk-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          applyDiskType(btn.dataset.disk);
+        });
+      });
     })();
   </script>
 </body>
