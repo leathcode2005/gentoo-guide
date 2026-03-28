@@ -173,20 +173,43 @@ chronyd -q
 <div class="code-wrap"><button class="copy-btn" type="button">Copy</button><pre><code class="language-bash">
 wget https://distfiles.gentoo.org/releases/amd64/autobuilds/current-stage3-amd64-openrc/stage3-amd64-openrc-&lt;date&gt;.tar.xz
 </code></pre></div>
-<p>Extract stage3:</p>
+<p>Extract stage3 (run from within <code>/mnt/gentoo</code>):</p>
 <div class="code-wrap"><button class="copy-btn" type="button">Copy</button><pre><code class="language-bash">
-tar xpvf stage3-*.tar.xz --xattrs-include='*.*' --numeric-owner -C /mnt/gentoo
+tar xpvf stage3-*.tar.xz --xattrs-include='*.*' --numeric-owner
 </code></pre></div>
-<h2>4) Chroot</h2>
+<h2>4) Configure Portage (make.conf)</h2>
+<p>Set compiler defaults before entering the chroot so build settings are in effect for the first Portage sync:</p>
+<div class="code-wrap"><button class="copy-btn" type="button">Copy</button><pre><code class="language-bash">
+cat &gt; /mnt/gentoo/etc/portage/make.conf &lt;&lt;'EOF'
+COMMON_FLAGS="-march=native -O2 -pipe"
+CFLAGS="${COMMON_FLAGS}"
+CXXFLAGS="${COMMON_FLAGS}"
+MAKEOPTS="-j$(nproc)"
+EOF
+</code></pre></div>
+<h2>5) Chroot</h2>
 <p>Copy DNS config:</p>
 <div class="code-wrap"><button class="copy-btn" type="button">Copy</button><pre><code class="language-bash">
 cp --dereference /etc/resolv.conf /mnt/gentoo/etc/
 </code></pre></div>
+<p>Mount the necessary pseudo-filesystems:</p>
+<div class="code-wrap"><button class="copy-btn" type="button">Copy</button><pre><code class="language-bash">
+mount --types proc /proc /mnt/gentoo/proc
+mount --rbind /sys /mnt/gentoo/sys
+mount --make-rslave /mnt/gentoo/sys
+mount --rbind /dev /mnt/gentoo/dev
+mount --make-rslave /mnt/gentoo/dev
+mount --bind /run /mnt/gentoo/run
+mount --make-slave /mnt/gentoo/run
+</code></pre></div>
 <p>Enter target system:</p>
 <div class="code-wrap"><button class="copy-btn" type="button">Copy</button><pre><code class="language-bash">
-arch-chroot /mnt/gentoo
+chroot /mnt/gentoo /bin/bash
+source /etc/profile
+export PS1="(chroot) ${PS1}"
 </code></pre></div>
-<h2>5) Portage and Profile</h2>
+<p><strong>Note:</strong> If using the official Gentoo install media, you may instead use <code>arch-chroot /mnt/gentoo</code> as a shortcut — it handles the pseudo-filesystem mounts automatically.</p>
+<h2>6) Portage and Profile</h2>
 <p>Install repository snapshot:</p>
 <div class="code-wrap"><button class="copy-btn" type="button">Copy</button><pre><code class="language-bash">
 emerge-webrsync
@@ -196,10 +219,11 @@ emerge-webrsync
 eselect profile list
 eselect profile set &lt;openrc-profile-number&gt;
 </code></pre></div>
-<h2>6) Basic System Settings</h2>
-<p>Set timezone to Detroit:</p>
+<h2>7) Basic System Settings</h2>
+<p>Set timezone to Detroit (OpenRC method):</p>
 <div class="code-wrap"><button class="copy-btn" type="button">Copy</button><pre><code class="language-bash">
-ln -sf ../usr/share/zoneinfo/America/Detroit /etc/localtime
+echo "America/Detroit" &gt; /etc/timezone
+emerge --config sys-libs/timezone-data
 </code></pre></div>
 <p>Set locale:</p>
 <div class="code-wrap"><button class="copy-btn" type="button">Copy</button><pre><code class="language-bash">
@@ -209,21 +233,8 @@ eselect locale list
 eselect locale set &lt;en_US-utf8-number&gt;
 env-update &amp;&amp; source /etc/profile
 </code></pre></div>
-<p>Set compiler defaults:</p>
-<div class="code-wrap"><button class="copy-btn" type="button">Copy</button><pre><code class="language-bash">
-cat &gt; /etc/portage/make.conf &lt;&lt;'EOF'
-COMMON_FLAGS="-march=native -O2 -pipe"
-CFLAGS="${COMMON_FLAGS}"
-CXXFLAGS="${COMMON_FLAGS}"
-MAKEOPTS="-j$(nproc)"
-EOF
-</code></pre></div>
-<h2>7) Kernel</h2>
-<p>Install firmware and kernel tooling:</p>
-<div class="code-wrap"><button class="copy-btn" type="button">Copy</button><pre><code class="language-bash">
-emerge --ask sys-kernel/linux-firmware sys-kernel/installkernel sys-kernel/gentoo-kernel
-</code></pre></div>
-<p>Configure installkernel + dracut:</p>
+<h2>8) Kernel</h2>
+<p>Configure installkernel to use dracut:</p>
 <div class="code-wrap"><button class="copy-btn" type="button">Copy</button><pre><code class="language-bash">
 mkdir -p /etc/portage/package.use
 cat &gt; /etc/portage/package.use/installkernel &lt;&lt;'EOF'
@@ -238,11 +249,11 @@ cat &gt; /etc/dracut.conf.d/00-installkernel.conf &lt;&lt;EOF
 kernel_cmdline=" root=UUID=${ROOT_UUID} rw "
 EOF
 </code></pre></div>
-<p>Install kernel artifacts:</p>
+<p>Install firmware, kernel tooling, and kernel:</p>
 <div class="code-wrap"><button class="copy-btn" type="button">Copy</button><pre><code class="language-bash">
-emerge --ask sys-kernel/gentoo-kernel
+emerge --ask sys-kernel/linux-firmware sys-kernel/installkernel sys-kernel/gentoo-kernel
 </code></pre></div>
-<h2>8) Configure System Files</h2>
+<h2>9) Configure System Files</h2>
 <p>Set hostname:</p>
 <div class="code-wrap"><button class="copy-btn" type="button">Copy</button><pre><code class="language-bash">
 echo gentoo &gt; /etc/hostname
@@ -269,7 +280,7 @@ EOF
 <div class="code-wrap"><button class="copy-btn" type="button">Copy</button><pre><code class="language-bash">
 passwd
 </code></pre></div>
-<h2>9) Networking and Required Services</h2>
+<h2>10) Networking and Required Services</h2>
 <p>Install and enable DHCP client:</p>
 <div class="code-wrap"><button class="copy-btn" type="button">Copy</button><pre><code class="language-bash">
 emerge --ask net-misc/dhcpcd
@@ -282,7 +293,7 @@ rc-update add sysklogd default
 rc-update add cronie default
 rc-update add chronyd default
 </code></pre></div>
-<h2>10) UEFI Boot (EFI Stub, No GRUB)</h2>
+<h2>11) UEFI Boot (EFI Stub, No GRUB)</h2>
 <p>Install efibootmgr:</p>
 <div class="code-wrap"><button class="copy-btn" type="button">Copy</button><pre><code class="language-bash">
 emerge --ask sys-boot/efibootmgr
@@ -297,7 +308,7 @@ cp /boot/initramfs* /efi/EFI/Gentoo/initramfs.img
 <div class="code-wrap"><button class="copy-btn" type="button">Copy</button><pre><code class="language-bash">
 efibootmgr --create --disk /dev/sda --part 1 --label "Gentoo" --loader "\\EFI\\Gentoo\\bzImage.efi" --unicode "initrd=\\EFI\\Gentoo\\initramfs.img root=UUID=${ROOT_UUID} rw"
 </code></pre></div>
-<h2>11) Finalize and Reboot</h2>
+<h2>12) Finalize and Reboot</h2>
 <p>Create daily user:</p>
 <div class="code-wrap"><button class="copy-btn" type="button">Copy</button><pre><code class="language-bash">
 useradd -m -G users,wheel,audio,video,usb -s /bin/bash larry
