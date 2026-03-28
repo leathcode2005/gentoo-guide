@@ -271,6 +271,22 @@ mkdir -p /etc/portage/package.accept_keywords
 echo "category/package-name ~amd64" &gt; /etc/portage/package.accept_keywords/package-name
 </code></pre></div>
 <p>Replace <code>category/package-name</code> with the <code>category/name</code> portion of the atom shown in the Portage output — omit the leading <code>=</code> and the version number (e.g. use <code>sys-kernel/gentoo-kernel</code>, not <code>=sys-kernel/gentoo-kernel-6.6.21</code>). Using the unversioned form is preferred because it accepts any testing version of that package, not just one specific release. The <code>~amd64</code> keyword means the package is in the testing branch for amd64; accepting it for individual packages is safe, especially when Portage itself suggests it.</p>
+<h3>Handling Licences</h3>
+<p>Portage's default <code>ACCEPT_LICENSE</code> value only allows free software licences (<code>@FREE</code>). Packages that carry non-free or binary-redistributable licences — such as <code>sys-kernel/linux-firmware</code> or <code>x11-drivers/nvidia-drivers</code> — will be blocked at emerge time unless you explicitly accept their licences. You can do this globally in <code>/etc/portage/make.conf</code> or on a per-package basis.</p>
+<p><strong>Global acceptance (simplest, recommended for desktop installs):</strong></p>
+<div class="code-wrap"><button class="copy-btn" type="button">Copy</button><pre><code class="language-bash">
+echo 'ACCEPT_LICENSE="*"' &gt;&gt; /etc/portage/make.conf
+</code></pre></div>
+<p>This accepts all licences. If you prefer a more conservative approach that covers free licences plus binary-redistributable firmware (e.g. <code>linux-firmware</code>) but nothing else:</p>
+<div class="code-wrap"><button class="copy-btn" type="button">Copy</button><pre><code class="language-bash">
+echo 'ACCEPT_LICENSE="-* @FREE @BINARY-REDISTRIBUTABLE"' &gt;&gt; /etc/portage/make.conf
+</code></pre></div>
+<p><strong>Per-package acceptance</strong> (use <code>/etc/portage/package.license/</code> as a directory, consistent with how <code>/etc/portage/package.use/</code> and <code>/etc/portage/package.accept_keywords/</code> are used in this guide):</p>
+<div class="code-wrap"><button class="copy-btn" type="button">Copy</button><pre><code class="language-bash">
+mkdir -p /etc/portage/package.license
+echo "sys-kernel/linux-firmware linux-fw-redistributable no-source-code" &gt; /etc/portage/package.license/linux-firmware
+</code></pre></div>
+<p><strong>Note:</strong> Step 11a (NVIDIA) uses per-package licence acceptance for <code>x11-drivers/nvidia-drivers</code> — see that section for a concrete example.</p>
 <p>Set profile:</p>
 <div class="code-wrap"><button class="copy-btn" type="button">Copy</button><pre><code class="language-bash">
 eselect profile list
