@@ -175,6 +175,7 @@ n
 &lt;Enter&gt;
 w
 </code></pre></div>
+<p><strong>Note on partition types:</strong> After creating partition 1, <code>t</code> automatically selects it (the only partition at that point) and <code>1</code> sets the type code to <strong>EFI System</strong> (GPT type 1). Without this, the partition would default to "Linux filesystem" and firmware would not recognize it as an ESP. For partition 2, <code>t</code> → <code>2</code> → <code>19</code> sets the swap type.</p>
 <p>Resulting layout:</p>
 <ul>
 <li>`/dev/sda1`: EFI System Partition</li>
@@ -244,7 +245,11 @@ chroot /mnt/gentoo /bin/bash
 source /etc/profile
 export PS1="(chroot) ${PS1}"
 </code></pre></div>
-<p><strong>Note:</strong> If using the official Gentoo install media, you may instead use <code>arch-chroot /mnt/gentoo</code> as a shortcut — it handles the pseudo-filesystem mounts automatically.</p>
+<p><strong>Note:</strong> The manual pseudo-filesystem mounts above are the standard Gentoo method. <code>arch-chroot</code> is an Arch Linux tool and is <strong>not</strong> available on Gentoo install media.</p>
+<p>Verify network connectivity inside the chroot:</p>
+<div class="code-wrap"><button class="copy-btn" type="button">Copy</button><pre><code class="language-bash">
+ping -c 3 gentoo.org
+</code></pre></div>
 <h2>6) Portage and Profile</h2>
 <p>Install repository snapshot:</p>
 <div class="code-wrap"><button class="copy-btn" type="button">Copy</button><pre><code class="language-bash">
@@ -255,12 +260,23 @@ emerge-webrsync
 eselect profile list
 eselect profile set &lt;openrc-profile-number&gt;
 </code></pre></div>
+<p>Update the system to conform to the new profile's USE flags (recommended by the official Handbook):</p>
+<div class="code-wrap"><button class="copy-btn" type="button">Copy</button><pre><code class="language-bash">
+emerge --ask --verbose --update --deep --newuse @world
+</code></pre></div>
+<h2>6a) CPU Flags</h2>
+<p>Install <code>cpuid2cpuflags</code> to detect CPU-specific USE flags (AES-NI, AVX2, SSE4, etc.) and apply them so packages are compiled with optimal CPU optimizations:</p>
+<div class="code-wrap"><button class="copy-btn" type="button">Copy</button><pre><code class="language-bash">
+emerge --ask app-portage/cpuid2cpuflags
+echo "*/* $(cpuid2cpuflags)" &gt; /etc/portage/package.use/00cpu-flags
+</code></pre></div>
 <h2>7) Basic System Settings</h2>
 <p>Set timezone to Detroit (OpenRC method):</p>
 <div class="code-wrap"><button class="copy-btn" type="button">Copy</button><pre><code class="language-bash">
 echo "America/Detroit" &gt; /etc/timezone
 emerge --config sys-libs/timezone-data
 </code></pre></div>
+<p><strong>Note:</strong> Replace <code>America/Detroit</code> with your own timezone. List available timezones with <code>ls /usr/share/zoneinfo/</code>.</p>
 <p>Set locale:</p>
 <div class="code-wrap"><button class="copy-btn" type="button">Copy</button><pre><code class="language-bash">
 echo 'en_US.UTF-8 UTF-8' &gt; /etc/locale.gen
@@ -337,18 +353,53 @@ emerge --ask sys-boot/efibootmgr
 <p>Copy kernel and initramfs to ESP:</p>
 <div class="code-wrap"><button class="copy-btn" type="button">Copy</button><pre><code class="language-bash">
 mkdir -p /efi/EFI/Gentoo
-cp /boot/vmlinuz-* /efi/EFI/Gentoo/bzImage.efi
-cp /boot/initramfs* /efi/EFI/Gentoo/initramfs.img
+cp /boot/vmlinuz-*-gentoo-dist /efi/EFI/Gentoo/bzImage.efi
+cp /boot/initramfs-*-gentoo-dist.img /efi/EFI/Gentoo/initramfs.img
 </code></pre></div>
-<p>Create firmware boot entry:</p>
+<p><strong>Note:</strong> If multiple kernel versions are installed, the glob may match more than one file. Run <code>ls /boot/</code> first to confirm which files exist and adjust the pattern if needed.</p>
+<p>Re-derive the root UUID (in case the shell variable from Step 8 is no longer in scope) and create the firmware boot entry:</p>
 <div class="code-wrap"><button class="copy-btn" type="button">Copy</button><pre><code class="language-bash">
+ROOT_UUID=$(blkid -s UUID -o value /dev/sda3)
+[ -z "${ROOT_UUID}" ] &amp;&amp; echo "ERROR: could not read UUID for /dev/sda3 — check blkid output" &amp;&amp; exit 1
 efibootmgr --create --disk /dev/sda --part 1 --label "Gentoo" --loader "\\EFI\\Gentoo\\bzImage.efi" --unicode "initrd=\\EFI\\Gentoo\\initramfs.img root=UUID=${ROOT_UUID} rw"
+</code></pre></div>
+<p><strong>Note on UUID vs PARTUUID:</strong> The fstab (Step 9) uses <code>PARTUUID</code> (partition-level identifier) while the kernel cmdline uses <code>UUID</code> (filesystem-level identifier). Both are valid and work independently; the kernel cmdline UUID is used by the initramfs to find the root filesystem before fstab is processed.</p>
+<h2>11a) Video / GPU Drivers</h2>
+<p>Detect the installed GPU:</p>
+<div class="code-wrap"><button class="copy-btn" type="button">Copy</button><pre><code class="language-bash">
+lspci | grep -i vga
+</code></pre></div>
+<p>Set <code>VIDEO_CARDS</code> in <code>/etc/portage/make.conf</code> and install the matching driver. Only do this section if you intend to set up a graphical environment (X11/Wayland).</p>
+<h3>Intel integrated graphics</h3>
+<p>For modern Intel (Gen 8+ / Broadwell+) the in-tree modesetting driver is preferred:</p>
+<div class="code-wrap"><button class="copy-btn" type="button">Copy</button><pre><code class="language-bash">
+echo 'VIDEO_CARDS="intel i965"' &gt;&gt; /etc/portage/make.conf
+emerge --ask x11-drivers/xf86-video-intel
+</code></pre></div>
+<p>For very recent Intel (Iris Xe / Gen 12+) use <code>VIDEO_CARDS="intel iris"</code> instead.</p>
+<h3>AMD / Radeon (open-source amdgpu)</h3>
+<div class="code-wrap"><button class="copy-btn" type="button">Copy</button><pre><code class="language-bash">
+echo 'VIDEO_CARDS="amdgpu radeonsi"' &gt;&gt; /etc/portage/make.conf
+# sys-kernel/linux-firmware (installed in Step 8) already includes AMD GPU firmware
+emerge --ask x11-drivers/xf86-video-amdgpu
+</code></pre></div>
+<h3>NVIDIA (proprietary)</h3>
+<div class="code-wrap"><button class="copy-btn" type="button">Copy</button><pre><code class="language-bash">
+echo 'VIDEO_CARDS="nvidia"' &gt;&gt; /etc/portage/make.conf
+echo "x11-drivers/nvidia-drivers NVIDIA-r2" &gt;&gt; /etc/portage/package.license
+emerge --ask x11-drivers/nvidia-drivers
 </code></pre></div>
 <h2>12) Finalize and Reboot</h2>
 <p>Create daily user:</p>
 <div class="code-wrap"><button class="copy-btn" type="button">Copy</button><pre><code class="language-bash">
 useradd -m -G users,wheel,audio,video,usb -s /bin/bash larry
 passwd larry
+</code></pre></div>
+<p><strong>Note:</strong> Replace <code>larry</code> with your preferred username.</p>
+<p>Install <code>sudo</code> and grant the <code>wheel</code> group sudo access:</p>
+<div class="code-wrap"><button class="copy-btn" type="button">Copy</button><pre><code class="language-bash">
+emerge --ask app-admin/sudo
+echo "%wheel ALL=(ALL:ALL) ALL" &gt; /etc/sudoers.d/wheel
 </code></pre></div>
 <p>Exit, unmount, reboot:</p>
 <div class="code-wrap"><button class="copy-btn" type="button">Copy</button><pre><code class="language-bash">
