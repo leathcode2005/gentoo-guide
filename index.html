@@ -1,0 +1,359 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Gentoo Guide (OpenRC + UEFI)</title>
+  <style>
+    :root {
+      --panel: #ffffff;
+      --text: #1b1f24;
+      --muted: #5b6573;
+      --border: #d9dee5;
+      --code-bg: #0f1720;
+      --code-text: #e6edf3;
+      --shadow: 0 8px 26px rgba(15, 23, 32, 0.06);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: linear-gradient(180deg, #f9fafb 0%, #f1f4f8 100%);
+      color: var(--text);
+      font-family: "IBM Plex Sans", "Segoe UI", "Noto Sans", Arial, sans-serif;
+      line-height: 1.65;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+    }
+    .page { max-width: 980px; margin: 2rem auto; padding: 0 1rem 2.5rem; }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .hero {
+      padding: 1.1rem 1.2rem;
+      border-bottom: 1px solid var(--border);
+      background: linear-gradient(120deg, #ffffff 0%, #f6f9fc 100%);
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+    .hero h1 { margin: 0; font-size: 1.2rem; line-height: 1.3; }
+    .hero p { margin: 0.35rem 0 0; color: var(--muted); font-size: 0.95rem; }
+    article { padding: 1.4rem 1.2rem 1.8rem; }
+    h1, h2, h3, h4 { line-height: 1.3; margin: 1.35em 0 0.55em; }
+    h1 { font-size: 1.9rem; margin-top: 0.1rem; }
+    h2 { font-size: 1.45rem; border-top: 1px solid var(--border); padding-top: 1rem; }
+    h3 { font-size: 1.2rem; }
+    h4 { font-size: 1.05rem; }
+    p { margin: 0.66rem 0; max-width: 78ch; }
+    ul, ol { margin: 0.45rem 0 0.85rem 1.3rem; padding: 0; }
+    li { margin: 0.24rem 0; max-width: 78ch; }
+    .code-wrap { position: relative; margin: 0.9rem 0 1rem; }
+    pre {
+      margin: 0;
+      overflow-x: auto;
+      background: var(--code-bg);
+      color: var(--code-text);
+      border-radius: 10px;
+      border: 1px solid #111c29;
+      padding: 0.95rem 0.9rem;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
+    }
+    code, pre {
+      font-family: "JetBrains Mono", "Cascadia Mono", "SFMono-Regular", Consolas, monospace;
+      font-size: 0.92rem;
+      line-height: 1.5;
+    }
+    :not(pre) > code {
+      background: #eef2f7;
+      border: 1px solid #dbe3ec;
+      border-radius: 6px;
+      padding: 0.06rem 0.35rem;
+      font-size: 0.88em;
+    }
+    .copy-btn {
+      position: absolute;
+      right: 0.55rem;
+      top: 0.55rem;
+      border: 1px solid #3f4f62;
+      background: #162231;
+      color: #dfe7f0;
+      border-radius: 7px;
+      padding: 0.28rem 0.55rem;
+      font-size: 0.78rem;
+      cursor: pointer;
+      transition: transform 0.08s ease, background 0.15s ease;
+    }
+    .copy-btn:hover { background: #203145; }
+    .copy-btn:active { transform: translateY(1px); }
+    .copy-btn.ok { background: #134b2b; border-color: #2f7a51; }
+    hr { border: 0; border-top: 1px solid var(--border); margin: 1.1rem 0; }
+    @media (max-width: 680px) {
+      .page { margin-top: 0.8rem; padding: 0 0.5rem 1.2rem; }
+      .hero { position: static; }
+      article { padding: 1rem 0.9rem 1.3rem; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <section class="card">
+      <header class="hero">
+        <h1>Gentoo Installation Guide (OpenRC + UEFI)</h1>
+        <p>Required steps only. Optimized for readability and copy/paste.</p>
+      </header>
+      <article>
+<h1>Gentoo Installation Guide (OpenRC + UEFI + ext4)</h1>
+<p>This guide is intentionally minimal. It keeps only required steps for a standard OpenRC install on UEFI hardware.</p>
+<h2>1) Prepare Disk</h2>
+<p>Identify target disk:</p>
+<div class="code-wrap"><button class="copy-btn" type="button">Copy</button><pre><code class="language-bash">
+lsblk -o NAME,SIZE,TYPE,FSTYPE,MOUNTPOINT
+</code></pre></div>
+<p>Start partitioning (replace `/dev/sda` as needed):</p>
+<div class="code-wrap"><button class="copy-btn" type="button">Copy</button><pre><code class="language-bash">
+fdisk /dev/sda
+</code></pre></div>
+<p>Inside `fdisk`, create GPT + 3 partitions:</p>
+<div class="code-wrap"><button class="copy-btn" type="button">Copy</button><pre><code class="language-text">
+g
+n
+1
+&lt;Enter&gt;
++1G
+t
+1
+n
+2
+&lt;Enter&gt;
++8G
+t
+2
+19
+n
+3
+&lt;Enter&gt;
+&lt;Enter&gt;
+w
+</code></pre></div>
+<p>Resulting layout:</p>
+<ul>
+<li>`/dev/sda1`: EFI System Partition</li>
+<li>`/dev/sda2`: swap</li>
+<li>`/dev/sda3`: root</li>
+</ul>
+<h2>2) Create Filesystems and Mount</h2>
+<p>Format partitions:</p>
+<div class="code-wrap"><button class="copy-btn" type="button">Copy</button><pre><code class="language-bash">
+mkfs.vfat -F 32 /dev/sda1
+mkswap /dev/sda2
+swapon /dev/sda2
+mkfs.ext4 /dev/sda3
+</code></pre></div>
+<p>Mount target root and EFI:</p>
+<div class="code-wrap"><button class="copy-btn" type="button">Copy</button><pre><code class="language-bash">
+mkdir -p /mnt/gentoo
+mount /dev/sda3 /mnt/gentoo
+mkdir -p /mnt/gentoo/efi
+mount /dev/sda1 /mnt/gentoo/efi
+</code></pre></div>
+<h2>3) Download and Extract Stage3</h2>
+<p>Go to target root:</p>
+<div class="code-wrap"><button class="copy-btn" type="button">Copy</button><pre><code class="language-bash">
+cd /mnt/gentoo
+</code></pre></div>
+<p>Sync time for HTTPS:</p>
+<div class="code-wrap"><button class="copy-btn" type="button">Copy</button><pre><code class="language-bash">
+chronyd -q
+</code></pre></div>
+<p>Download OpenRC stage3 (use current filename from Gentoo mirror):</p>
+<div class="code-wrap"><button class="copy-btn" type="button">Copy</button><pre><code class="language-bash">
+wget https://distfiles.gentoo.org/releases/amd64/autobuilds/current-stage3-amd64-openrc/stage3-amd64-openrc-&lt;date&gt;.tar.xz
+</code></pre></div>
+<p>Extract stage3:</p>
+<div class="code-wrap"><button class="copy-btn" type="button">Copy</button><pre><code class="language-bash">
+tar xpvf stage3-*.tar.xz --xattrs-include='*.*' --numeric-owner -C /mnt/gentoo
+</code></pre></div>
+<h2>4) Chroot</h2>
+<p>Copy DNS config:</p>
+<div class="code-wrap"><button class="copy-btn" type="button">Copy</button><pre><code class="language-bash">
+cp --dereference /etc/resolv.conf /mnt/gentoo/etc/
+</code></pre></div>
+<p>Enter target system:</p>
+<div class="code-wrap"><button class="copy-btn" type="button">Copy</button><pre><code class="language-bash">
+arch-chroot /mnt/gentoo
+</code></pre></div>
+<h2>5) Portage and Profile</h2>
+<p>Install repository snapshot:</p>
+<div class="code-wrap"><button class="copy-btn" type="button">Copy</button><pre><code class="language-bash">
+emerge-webrsync
+</code></pre></div>
+<p>Set profile:</p>
+<div class="code-wrap"><button class="copy-btn" type="button">Copy</button><pre><code class="language-bash">
+eselect profile list
+eselect profile set &lt;openrc-profile-number&gt;
+</code></pre></div>
+<h2>6) Basic System Settings</h2>
+<p>Set timezone to Detroit:</p>
+<div class="code-wrap"><button class="copy-btn" type="button">Copy</button><pre><code class="language-bash">
+ln -sf ../usr/share/zoneinfo/America/Detroit /etc/localtime
+</code></pre></div>
+<p>Set locale:</p>
+<div class="code-wrap"><button class="copy-btn" type="button">Copy</button><pre><code class="language-bash">
+echo 'en_US.UTF-8 UTF-8' &gt; /etc/locale.gen
+locale-gen
+eselect locale list
+eselect locale set &lt;en_US-utf8-number&gt;
+env-update &amp;&amp; source /etc/profile
+</code></pre></div>
+<p>Set compiler defaults:</p>
+<div class="code-wrap"><button class="copy-btn" type="button">Copy</button><pre><code class="language-bash">
+cat &gt; /etc/portage/make.conf &lt;&lt;'EOF'
+COMMON_FLAGS="-march=native -O2 -pipe"
+CFLAGS="${COMMON_FLAGS}"
+CXXFLAGS="${COMMON_FLAGS}"
+MAKEOPTS="-j$(nproc)"
+EOF
+</code></pre></div>
+<h2>7) Kernel</h2>
+<p>Install firmware and kernel tooling:</p>
+<div class="code-wrap"><button class="copy-btn" type="button">Copy</button><pre><code class="language-bash">
+emerge --ask sys-kernel/linux-firmware sys-kernel/installkernel sys-kernel/gentoo-kernel
+</code></pre></div>
+<p>Configure installkernel + dracut:</p>
+<div class="code-wrap"><button class="copy-btn" type="button">Copy</button><pre><code class="language-bash">
+mkdir -p /etc/portage/package.use
+cat &gt; /etc/portage/package.use/installkernel &lt;&lt;'EOF'
+sys-kernel/installkernel dracut
+EOF
+</code></pre></div>
+<p>Set root UUID for initramfs:</p>
+<div class="code-wrap"><button class="copy-btn" type="button">Copy</button><pre><code class="language-bash">
+ROOT_UUID=$(blkid -s UUID -o value /dev/sda3)
+mkdir -p /etc/dracut.conf.d
+cat &gt; /etc/dracut.conf.d/00-installkernel.conf &lt;&lt;EOF
+kernel_cmdline=" root=UUID=${ROOT_UUID} rw "
+EOF
+</code></pre></div>
+<p>Install kernel artifacts:</p>
+<div class="code-wrap"><button class="copy-btn" type="button">Copy</button><pre><code class="language-bash">
+emerge --ask sys-kernel/gentoo-kernel
+</code></pre></div>
+<h2>8) Configure System Files</h2>
+<p>Set hostname:</p>
+<div class="code-wrap"><button class="copy-btn" type="button">Copy</button><pre><code class="language-bash">
+echo gentoo &gt; /etc/hostname
+</code></pre></div>
+<p>Create fstab:</p>
+<div class="code-wrap"><button class="copy-btn" type="button">Copy</button><pre><code class="language-bash">
+ESP_UUID=$(blkid -s PARTUUID -o value /dev/sda1)
+SWAP_UUID=$(blkid -s PARTUUID -o value /dev/sda2)
+ROOT_PARTUUID=$(blkid -s PARTUUID -o value /dev/sda3)
+cat &gt; /etc/fstab &lt;&lt;EOF
+PARTUUID=${ESP_UUID}      /efi   vfat  umask=0077,tz=UTC  0 2
+PARTUUID=${SWAP_UUID}     none   swap  sw                  0 0
+PARTUUID=${ROOT_PARTUUID} /      ext4  defaults,noatime    0 1
+EOF
+</code></pre></div>
+<p>Set hosts file:</p>
+<div class="code-wrap"><button class="copy-btn" type="button">Copy</button><pre><code class="language-bash">
+cat &gt; /etc/hosts &lt;&lt;'EOF'
+127.0.0.1   gentoo.localdomain gentoo localhost
+::1         gentoo.localdomain gentoo localhost
+EOF
+</code></pre></div>
+<p>Set root password:</p>
+<div class="code-wrap"><button class="copy-btn" type="button">Copy</button><pre><code class="language-bash">
+passwd
+</code></pre></div>
+<h2>9) Networking and Required Services</h2>
+<p>Install and enable DHCP client:</p>
+<div class="code-wrap"><button class="copy-btn" type="button">Copy</button><pre><code class="language-bash">
+emerge --ask net-misc/dhcpcd
+rc-update add dhcpcd default
+</code></pre></div>
+<p>Install and enable logger + cron + time sync:</p>
+<div class="code-wrap"><button class="copy-btn" type="button">Copy</button><pre><code class="language-bash">
+emerge --ask app-admin/sysklogd sys-process/cronie net-misc/chrony
+rc-update add sysklogd default
+rc-update add cronie default
+rc-update add chronyd default
+</code></pre></div>
+<h2>10) UEFI Boot (EFI Stub, No GRUB)</h2>
+<p>Install efibootmgr:</p>
+<div class="code-wrap"><button class="copy-btn" type="button">Copy</button><pre><code class="language-bash">
+emerge --ask sys-boot/efibootmgr
+</code></pre></div>
+<p>Copy kernel and initramfs to ESP:</p>
+<div class="code-wrap"><button class="copy-btn" type="button">Copy</button><pre><code class="language-bash">
+mkdir -p /efi/EFI/Gentoo
+cp /boot/vmlinuz-* /efi/EFI/Gentoo/bzImage.efi
+cp /boot/initramfs* /efi/EFI/Gentoo/initramfs.img
+</code></pre></div>
+<p>Create firmware boot entry:</p>
+<div class="code-wrap"><button class="copy-btn" type="button">Copy</button><pre><code class="language-bash">
+efibootmgr --create --disk /dev/sda --part 1 --label "Gentoo" --loader "\\EFI\\Gentoo\\bzImage.efi" --unicode "initrd=\\EFI\\Gentoo\\initramfs.img root=UUID=${ROOT_UUID} rw"
+</code></pre></div>
+<h2>11) Finalize and Reboot</h2>
+<p>Create daily user:</p>
+<div class="code-wrap"><button class="copy-btn" type="button">Copy</button><pre><code class="language-bash">
+useradd -m -G users,wheel,audio,video,usb -s /bin/bash larry
+passwd larry
+</code></pre></div>
+<p>Exit, unmount, reboot:</p>
+<div class="code-wrap"><button class="copy-btn" type="button">Copy</button><pre><code class="language-bash">
+exit
+cd /
+umount -l /mnt/gentoo/dev{/shm,/pts,} 2&gt;/dev/null || true
+umount -R /mnt/gentoo
+reboot
+</code></pre></div>
+      </article>
+    </section>
+  </main>
+  <script>
+    (function () {
+      function applyInlineCodeFromBackticks(root) {
+        var targets = root.querySelectorAll('p, li, h1, h2, h3, h4, td, th');
+        var re = /`([^`]+)`/g;
+        targets.forEach(function (el) {
+          if (el.querySelector('code, pre')) return;
+          var html = el.innerHTML;
+          if (html.indexOf('`') === -1) return;
+          el.innerHTML = html.replace(re, function (_, txt) { return '<code>' + txt + '</code>'; });
+        });
+      }
+      function attachCopyButtons() {
+        document.querySelectorAll('.code-wrap').forEach(function (wrap) {
+          var btn = wrap.querySelector('.copy-btn');
+          var code = wrap.querySelector('code');
+          if (!btn || !code) return;
+          btn.addEventListener('click', async function () {
+            var txt = code.innerText;
+            try {
+              await navigator.clipboard.writeText(txt);
+              var old = btn.textContent;
+              btn.textContent = 'Copied';
+              btn.classList.add('ok');
+              setTimeout(function () { btn.textContent = old; btn.classList.remove('ok'); }, 1200);
+            } catch (e) {
+              var sel = window.getSelection();
+              var range = document.createRange();
+              range.selectNodeContents(code);
+              sel.removeAllRanges();
+              sel.addRange(range);
+              btn.textContent = 'Select & Copy';
+              setTimeout(function () { btn.textContent = 'Copy'; }, 1400);
+            }
+          });
+        });
+      }
+      applyInlineCodeFromBackticks(document);
+      attachCopyButtons();
+    })();
+  </script>
+</body>
+</html>
