@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gentoo Install Guide — AMD · OpenRC · UKI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;0,9..144,700;1,9..144,300&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0a0e13;--bg2:#0f1520;--bg3:#151d2b;--bg4:#1a2336;--border:#1f2d42;--bord2:#2a3d58;--acc:#4d9eff;--grn:#38d97a;--red:#ff6b6b;--pur:#c792ea;--yel:#ffcc66;--txt:#cdd9e5;--txt2:#8fa4be;--txt3:#5a7390}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--txt);font-family:'DM Sans',sans-serif;font-size:15px;line-height:1.7}
+.layout{display:grid;grid-template-columns:285px 1fr;min-height:100vh;max-width:1360px;margin:0 auto}
+nav{position:sticky;top:0;height:100vh;overflow-y:auto;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column}
+nav::-webkit-scrollbar{width:3px}
+nav::-webkit-scrollbar-thumb{background:var(--bord2)}
+.nav-head{padding:1.6rem 1.4rem 1.2rem;border-bottom:1px solid var(--border)}
+.nav-badge{font-family:'IBM Plex Mono',monospace;font-size:.6rem;letter-spacing:.18em;text-transform:uppercase;color:var(--acc);background:#4d9eff14;border:1px solid #4d9eff33;padding:.18rem .55rem;border-radius:2px;display:inline-block;margin-bottom:.7rem}
+.nav-head h2{font-family:'Fraunces',serif;font-size:1rem;font-weight:600;color:var(--txt);line-height:1.3;margin-bottom:.35rem}
+.nav-specs{font-family:'IBM Plex Mono',monospace;font-size:.63rem;color:var(--txt3);line-height:1.85}
+.nav-specs span{color:var(--grn)}
+nav ul{list-style:none;padding:.5rem 0;flex:1}
+.nav-group{font-family:'IBM Plex Mono',monospace;font-size:.57rem;letter-spacing:.14em;text-transform:uppercase;color:var(--txt3);padding:.85rem 1.4rem .25rem;opacity:.55}
+nav ul li a{display:flex;align-items:center;gap:.6rem;padding:.37rem 1.4rem;font-size:.77rem;font-weight:500;color:var(--txt3);text-decoration:none;transition:all .12s;border-left:2px solid transparent}
+nav ul li a:hover{color:var(--txt);background:#ffffff06}
+nav ul li a.active{color:var(--acc);border-left-color:var(--acc);background:#4d9eff0a}
+.pip{width:20px;height:20px;background:var(--bg3);border:1px solid var(--bord2);border-radius:4px;display:inline-flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-size:.6rem;font-weight:600;flex-shrink:0;color:var(--txt3)}
+nav ul li a.active .pip{background:#4d9eff22;border-color:var(--acc);color:var(--acc)}
+main{padding:3rem 4rem;max-width:940px}
+.hero{margin-bottom:3rem;padding-bottom:2.5rem;border-bottom:1px solid var(--border);animation:fadeUp .5s ease both}
+.eyebrow{font-family:'IBM Plex Mono',monospace;font-size:.67rem;letter-spacing:.2em;text-transform:uppercase;color:var(--acc);margin-bottom:1rem}
+.hero h1{font-family:'Fraunces',serif;font-size:2.75rem;font-weight:700;line-height:1.1;color:#e8f0fa;margin-bottom:.85rem}
+.hero h1 em{font-style:italic;color:var(--acc)}
+.hero p{font-size:.93rem;color:var(--txt2);max-width:580px;margin-bottom:1.25rem}
+.tags{display:flex;flex-wrap:wrap;gap:.42rem}
+.tag{font-family:'IBM Plex Mono',monospace;font-size:.67rem;padding:.2rem .6rem;border-radius:3px;border:1px solid}
+.tb{background:#4d9eff12;border-color:#4d9eff44;color:#79bfff}
+.tg{background:#38d97a12;border-color:#38d97a44;color:#5de896}
+.tp{background:#c792ea12;border-color:#c792ea44;color:#d9b3f5}
+.tr{background:#ff6b6b12;border-color:#ff6b6b44;color:#ff9494}
+.ty{background:#ffcc6612;border-color:#ffcc6644;color:#ffd97a}
+.sec{margin-bottom:3.5rem;animation:fadeUp .4s ease both}
+.sec-hd{display:flex;align-items:center;gap:1rem;margin-bottom:1.35rem}
+.sn{width:38px;height:38px;color:#fff;font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:.8rem;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}
+.sn-b{background:linear-gradient(135deg,var(--acc),#1f6feb)}
+.sn-g{background:linear-gradient(135deg,var(--grn),#1fa855)}
+.sn-r{background:linear-gradient(135deg,var(--red),#c93c3c)}
+.sn-p{background:linear-gradient(135deg,var(--pur),#8a44c8)}
+.sn-y{background:linear-gradient(135deg,var(--yel),#d4960a);color:#1a1a1a}
+h2.st{font-family:'Fraunces',serif;font-size:1.4rem;font-weight:600;color:#e0eaf6}
+h3{font-family:'DM Sans',sans-serif;font-weight:500;color:var(--acc);margin:1.5rem 0 .45rem;letter-spacing:.03em;text-transform:uppercase;font-size:.76rem}
+p{color:var(--txt2);margin-bottom:.75rem;font-size:.92rem}
+p strong{color:var(--txt);font-weight:500}
+.cb{background:#070c12;border:1px solid var(--border);border-radius:6px;margin:.85rem 0;overflow:hidden}
+.cbh{display:flex;align-items:center;justify-content:space-between;padding:.42rem 1rem;background:var(--bg3);border-bottom:1px solid var(--border)}
+.dots{display:flex;gap:5px}
+.dots span{width:9px;height:9px;border-radius:50%}
+.dr{background:#ff5f57}.dy{background:#febc2e}.dg{background:#28c840}
+.cbl{font-family:'IBM Plex Mono',monospace;font-size:.63rem;color:var(--txt3)}
+pre{padding:1rem 1.2rem;overflow-x:auto;font-family:'IBM Plex Mono',monospace;font-size:.79rem;line-height:1.78;white-space:pre}
+pre::-webkit-scrollbar{height:3px}
+pre::-webkit-scrollbar-thumb{background:var(--bord2)}
+.c{color:#4d9eff}.a{color:#38d97a}.s{color:#89ddff}.cm{color:#3d5266;font-style:italic}
+.k{color:#c792ea}.v{color:#ff9494}.u{color:#ffcc66;font-weight:600}
+code{font-family:'IBM Plex Mono',monospace;font-size:.8em;background:var(--bg4);border:1px solid var(--bord2);padding:.07em .36em;border-radius:3px;color:#ff9494}
+.cl{display:flex;gap:.8rem;padding:.85rem 1rem;border-radius:6px;border:1px solid;margin:.9rem 0}
+.cl-i{flex-shrink:0;font-size:.95rem;margin-top:.05rem}
+.cl p{margin:0;font-size:.83rem}
+.cl strong{font-weight:600}
+.cw{background:#ffcc6609;border-color:#ffcc6633;color:#ffd97a}
+.cd{background:#ff6b6b09;border-color:#ff6b6b33;color:#ff9494}
+.ct{background:#38d97a09;border-color:#38d97a33;color:#5de896}
+.ci{background:#4d9eff09;border-color:#4d9eff33;color:#79bfff}
+hr{border:none;border-top:1px solid var(--border);margin:2.5rem 0}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@media(max-width:860px){.layout{grid-template-columns:1fr}nav{display:none}main{padding:2rem 1.25rem}.hero h1{font-size:2rem}}
+</style>
+</head>
+<body>
+<div class="layout">
+
+<nav>
+  <div class="nav-head">
+    <div class="nav-badge">Gentoo Install Guide</div>
+    <h2>Complete Installation</h2>
+    <div class="nav-specs">AMD · OpenRC · ext4<br>Dual NVMe · <span>UUID everywhere</span><br>EFI Stub + UKI · No bootloader</div>
+  </div>
+  <ul>
+    <div class="nav-group">Pre-Install</div>
+    <li><a href="#s0"><span class="pip">0</span>Disk Identification</a></li>
+    <li><a href="#s1"><span class="pip">1</span>Partitioning</a></li>
+    <li><a href="#s2"><span class="pip">2</span>Format &amp; Mount</a></li>
+    <li><a href="#s3"><span class="pip">3</span>Stage File</a></li>
+    <div class="nav-group">Chroot</div>
+    <li><a href="#s4"><span class="pip">4</span>Enter Chroot</a></li>
+    <li><a href="#s5"><span class="pip">5</span>make.conf</a></li>
+    <li><a href="#s6"><span class="pip">6</span>Portage &amp; Profile</a></li>
+    <li><a href="#s7"><span class="pip">7</span>CPU &amp; GPU Flags</a></li>
+    <div class="nav-group">System Base</div>
+    <li><a href="#s8"><span class="pip">8</span>Firmware &amp; Microcode</a></li>
+    <li><a href="#s9"><span class="pip">9</span>Timezone &amp; Locale</a></li>
+    <li><a href="#s10"><span class="pip">10</span>fstab</a></li>
+    <li><a href="#s11"><span class="pip">11</span>Hostname &amp; Network</a></li>
+    <li><a href="#s12"><span class="pip">12</span>System Tools</a></li>
+    <div class="nav-group">Kernel &amp; Boot</div>
+    <li><a href="#s13"><span class="pip">13</span>installkernel Setup</a></li>
+    <li><a href="#s14"><span class="pip">14</span>Dracut Config</a></li>
+    <li><a href="#s15"><span class="pip">15</span>Install Kernel</a></li>
+    <li><a href="#s16"><span class="pip">16</span>UEFI Boot Entry</a></li>
+    <div class="nav-group">Finish</div>
+    <li><a href="#s17"><span class="pip">17</span>Users &amp; Passwords</a></li>
+    <li><a href="#s18"><span class="pip">18</span>Reboot &amp; Verify</a></li>
+    <li><a href="#qr"><span class="pip">★</span>Quick Reference</a></li>
+  </ul>
+</nav>
+
+<main>
+
+<div class="hero">
+  <div class="eyebrow">// Personalized Installation Guide</div>
+  <h1>Gentoo Linux<br><em>Full Install</em></h1>
+  <p>Written specifically for your hardware. Every command is copy-paste ready. Replace UUID placeholders — highlighted in <span style="color:#ffcc66;font-family:'IBM Plex Mono',monospace;font-size:.85em">yellow</span> — with your actual values from <code>blkid</code>.</p>
+  <div class="tags">
+    <span class="tag tb">ASRock X870 Taichi Lite</span>
+    <span class="tag tg">AMD CPU + GPU</span>
+    <span class="tag tp">Dual NVMe</span>
+    <span class="tag tr">OpenRC</span>
+    <span class="tag ty">ext4 root</span>
+    <span class="tag tb">EFI Stub + UKI</span>
+    <span class="tag tg">No bootloader</span>
+  </div>
+</div>
+
+<!-- 0 -->
+<div class="sec" id="s0">
+  <div class="sec-hd"><div class="sn sn-r">0</div><h2 class="st">Disk Identification — UUID Is Everything</h2></div>
+  <p>With two NVMe drives, Linux assigns device names (<code>nvme0n1</code>, <code>nvme1n1</code>) by boot enumeration order — <strong>which is not stable across reboots</strong>. UUID is burned into the partition and never changes. This guide uses UUID for every config file reference.</p>
+  <div class="cl cd"><span class="cl-i">🚫</span><p><strong>Never use</strong> <code>/dev/nvme0n1p2</code> or any <code>/dev/nvme*</code> path in any config file. They will randomly fail on a dual-NVMe system.</p></div>
+  <h3>Identify your drives before touching anything</h3>
+  <div class="cb"><div class="cbh"><div class="dots"><span class="dr"></span><span class="dy"></span><span class="dg"></span></div><span class="cbl">live environment</span></div>
+  <pre><span class="c">lsblk</span> <span class="a">-d -o</span> NAME,SIZE,MODEL   <span class="cm"># see all drives and their sizes/models</span>
+<span class="c">lsblk</span> <span class="a">-f</span>                     <span class="cm"># tree view of partitions and filesystems</span>
+
+<span class="cm"># Decide which NVMe will be your Gentoo install drive.</span>
+<span class="cm"># This guide uses nvme0n1 as the example — substitute your actual drive.</span>
+<span class="cm"># WARNING: partitioning will destroy all existing data on that drive.</span></pre></div>
+  <div class="cl cw"><span class="cl-i">⚠️</span><p><strong>Back up anything important</strong> on the target drive. The next step wipes it.</p></div>
+</div>
+
+<!-- 1 -->
+<div class="sec" id="s1">
+  <div class="sec-hd"><div class="sn sn-r">1</div><h2 class="st">Partition the Disk (GPT + UEFI)</h2></div>
+  <p>Three partitions: EFI System Partition (1GB), swap (match your RAM), root (rest of disk). GPT disklabel is required for UEFI boot.</p>
+  <div class="cl ci"><span class="cl-i">📌</span><p>The handbook recommends 1GB EFI and at least 4GB swap. On a modern Ryzen system, matching swap to RAM (16GB, 32GB, 64GB) is sensible.</p></div>
+  <h3>Open fdisk on your install drive</h3>
+  <div class="cb"><div class="cbh"><div class="dots"><span class="dr"></span><span class="dy"></span><span class="dg"></span></div><span class="cbl">live environment — replace nvme0n1 with your drive</span></div>
+  <pre><span class="c">fdisk</span> /dev/nvme0n1</pre></div>
+  <h3>fdisk commands — type these in order</h3>
+  <div class="cb"><div class="cbh"><div class="dots"><span class="dr"></span><span class="dy"></span><span class="dg"></span></div><span class="cbl">inside fdisk</span></div>
+  <pre>g          <span class="cm"># create new GPT disklabel — WIPES ALL EXISTING PARTITIONS</span>
+
+<span class="cm"># Partition 1: EFI (1GB)</span>
+n          <span class="cm"># new partition</span>
+           <span class="cm"># number: 1 (Enter)</span>
+           <span class="cm"># first sector (Enter)</span>
++1G        <span class="cm"># size</span>
+t          <span class="cm"># change type</span>
+1          <span class="cm"># EFI System</span>
+
+<span class="cm"># Partition 2: swap (adjust +32G to match your RAM)</span>
+n
+           <span class="cm"># number: 2 (Enter)</span>
+           <span class="cm"># first sector (Enter)</span>
++32G       <span class="cm"># match your RAM: +16G, +32G, +64G etc.</span>
+t
+2          <span class="cm"># select partition 2</span>
+19         <span class="cm"># Linux swap</span>
+
+<span class="cm"># Partition 3: root (rest of disk)</span>
+n
+           <span class="cm"># number: 3 (Enter)</span>
+           <span class="cm"># first sector (Enter)</span>
+           <span class="cm"># last sector (Enter — uses all remaining space)</span>
+t
+3          <span class="cm"># select partition 3</span>
+23         <span class="cm"># Linux root (x86-64)</span>
+
+p          <span class="cm"># print table to verify before saving</span>
+w          <span class="cm"># write to disk — POINT OF NO RETURN</span></pre></div>
+  <h3>Expected layout</h3>
+  <div class="cb"><div class="cbh"><div class="dots"><span class="dr"></span><span class="dy"></span><span class="dg"></span></div><span class="cbl">what 'p' should show</span></div>
+  <pre>Device           Size  Type
+/dev/nvme0n1p1    1G   EFI System
+/dev/nvme0n1p2   32G   Linux swap
+/dev/nvme0n1p3  &lt;rest&gt; Linux root (x86-64)</pre></div>
+</div>
+
+<!-- 2 -->
+<div class="sec" id="s2">
+  <div class="sec-hd"><div class="sn sn-r">2</div><h2 class="st">Format Partitions &amp; Mount</h2></div>
+  <p>Format each partition and mount them. Device paths here are fine — these are one-time commands, not config files.</p>
+  <div class="cl cw"><span class="cl-i">⚠️</span><p><strong>mkfs erases all data</strong> on the target partition. Verify you're targeting the right drive.</p></div>
+  <h3>Format EFI (must be FAT32)</h3>
+  <div class="cb"><div class="cbh"><div class="dots"><span class="dr"></span><span class="dy"></span><span class="dg"></span></div><span class="cbl">live environment</span></div>
+  <pre><span class="c">mkfs.fat</span> <span class="a">-F 32</span> /dev/nvme0n1p1</pre></div>
+  <h3>Format and activate swap</h3>
+  <div class="cb"><div class="cbh"><div class="dots"><span class="dr"></span><span class="dy"></span><span class="dg"></span></div><span class="cbl">live environment</span></div>
+  <pre><span class="c">mkswap</span> /dev/nvme0n1p2
+<span class="c">swapon</span> /dev/nvme0n1p2</pre></div>
+  <h3>Format root (ext4)</h3>
+  <div class="cb"><div class="cbh"><div class="dots"><span class="dr"></span><span class="dy"></span><span class="dg"></span></div><span class="cbl">live environment</span></div>
+  <pre><span class="c">mkfs.ext4</span> /dev/nvme0n1p3</pre></div>
+  <h3>Mount partitions</h3>
+  <div class="cb"><div class="cbh"><div class="dots"><span class="dr"></span><span class="dy"></span><span class="dg"></span></div><span class="cbl">live environment</span></div>
+  <pre><span class="c">mount</span> /dev/nvme0n1p3 /mnt/gentoo
+<span class="c">mkdir</span> <span class="a">-p</span> /mnt/gentoo/efi
+<span class="c">mount</span> /dev/nvme0n1p1 /mnt/gentoo/efi</pre></div>
+  <div class="cl ct"><span class="cl-i">💡</span><p>Run <code>blkid</code> now and write down the UUID for each partition — they're set during formatting and won't change. You'll need all three UUIDs in later steps.</p></div>
+  <div class="cb"><div class="cbh"><div class="dots"><span class="dr"></span><span class="dy"></span><span class="dg"></span></div><span class="cbl">live — write these down now</span></div>
+  <pre><span class="c">blkid</span>
+<span class="cm"># nvme0n1p1  short UUID like  <span class="u">A1B2-C3D4</span>                            ← EFI</span>
+<span class="cm"># nvme0n1p2  long UUID like   <span class="u">xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx</span>  ← swap</span>
+<span class="cm"># nvme0n1p3  long UUID like   <span class="u">2122cd72-94d7-4dcc-821e-3705926deecc</span>  ← root</span></pre></div>
+</div>
+
+<!-- 3 -->
+<div class="sec" id="s3">
+  <div class="sec-hd"><div class="sn sn-g">3</div><h2 class="st">Download &amp; Unpack Stage File</h2></div>
+  <p>Use the plain <strong>OpenRC stage3</strong> for amd64 — <em>not</em> the desktop variant. The plain stage is for CLI/server systems and is exactly right for a minimal installation.</p>
+  <div class="cl ci"><span class="cl-i">📌</span><p>There are two OpenRC stage3 options: <code>stage3-amd64-openrc</code> (225MB, plain CLI) and <code>stage3-amd64-desktop-openrc</code> (603MB, includes llvm/rust/desktop libs). For this minimal system use the <strong>plain openrc</strong> — the one without "desktop" in the name. The profile selected later must also match: <code>default/linux/amd64/23.0</code>, not a desktop sub-profile.</p></div>
+  <h3>Sync the clock</h3>
+  <div class="cb"><div class="cbh"><div class="dots"><span class="dr"></span><span class="dy"></span><span class="dg"></span></div><span class="cbl">live environment</span></div>
+  <pre><span class="c">date</span>         <span class="cm"># HTTPS downloads require accurate time</span>
+<span class="c">chronyd</span> <span class="a">-q</span>   <span class="cm"># auto-sync if off by more than a few minutes</span></pre></div>
+  <h3>Download</h3>
+  <div class="cb"><div class="cbh"><div class="dots"><span class="dr"></span><span class="dy"></span><span class="dg"></span></div><span class="cbl">live environment</span></div>
+  <pre><span class="c">cd</span> /mnt/gentoo
+<span class="c">links</span> https://www.gentoo.org/downloads/mirrors/
+<span class="cm"># Navigate: releases → amd64 → autobuilds → current-stage3-amd64-openrc/</span>
+<span class="cm"># Make sure it says "openrc" NOT "desktop-openrc"</span>
+<span class="cm"># Press 'd' on the stage3-amd64-openrc-[DATE].tar.xz file to download</span></pre></div>
+  <h3>Unpack</h3>
+  <div class="cb"><div class="cbh"><div class="dots"><span class="dr"></span><span class="dy"></span><span class="dg"></span></div><span class="cbl">live environment</span></div>
+  <pre><span class="c">tar</span> xpvf stage3-*.tar.xz <span class="a">--xattrs-include='*.*'</span> <span class="a">--numeric-owner</span> <span class="a">-C</span> /mnt/gentoo</pre></div>
+  <div class="cl ci"><span class="cl-i">📌</span><p><code>p</code> preserves permissions, <code>--xattrs-include='*.*'</code> preserves extended attributes, <code>--numeric-owner</code> preserves UID/GID exactly as Gentoo's release team intended.</p></div>
+</div>
+
+<!-- 4 -->
+<div class="sec" id="s4">
+  <div class="sec-hd"><div class="sn sn-b">4</div><h2 class="st">Enter the Chroot</h2></div>
+  <p>From this step on, all commands run inside your new Gentoo system. If the install is interrupted, you can resume by re-mounting and re-chrooting — no need to re-partition.</p>
+  <h3>Copy DNS and bind virtual filesystems</h3>
+  <div class="cb"><div class="cbh"><div class="dots"><span class="dr"></span><span class="dy"></span><span class="dg"></span></div><span class="cbl">live environment</span></div>
+  <pre><span class="c">cp</span> <span class="a">--dereference</span> /etc/resolv.conf /mnt/gentoo/etc/
+
+<span class="c">mount</span> <span class="a">--types</span> proc /proc /mnt/gentoo/proc
+<span class="c">mount</span> <span class="a">--rbind</span> /sys /mnt/gentoo/sys
+<span class="c">mount</span> <span class="a">--make-rslave</span> /mnt/gentoo/sys
+<span class="c">mount</span> <span class="a">--rbind</span> /dev /mnt/gentoo/dev
+<span class="c">mount</span> <span class="a">--make-rslave</span> /mnt/gentoo/dev
+<span class="c">mount</span> <span class="a">--bind</span> /run /mnt/gentoo/run
+<span class="c">mount</span> <span class="a">--make-slave</span> /mnt/gentoo/run</pre></div>
+  <h3>Chroot in</h3>
+  <div class="cb"><div class="cbh"><div class="dots"><span class="dr"></span><span class="dy"></span><span class="dg"></span></div><span class="cbl">enter chroot</span></div>
+  <pre><span class="c">chroot</span> /mnt/gentoo /bin/bash
+<span class="c">source</span> /etc/profile
+<span class="c">export</span> <span class="k">PS1</span>=<span class="s">"(chroot) ${PS1}"</span></pre></div>
+
+  <div class="cl ci"><span class="cl-i">📌</span><p>Your prompt should now show <code>(chroot)</code>. All remaining steps until the reboot are run inside this chroot. If the install is ever interrupted, re-mount your partitions and re-run these three lines to resume.</p></div>
+
+  <h3>Mount EFI inside the chroot</h3>
+  <div class="cb"><div class="cbh"><div class="dots"><span class="dr"></span><span class="dy"></span><span class="dg"></span></div><span class="cbl">chroot — replace YOUR-EFI-UUID with your EFI partition UUID</span></div>
+  <pre><span class="c">mkdir</span> <span class="a">-p</span> /efi/EFI/Gentoo
+<span class="c">mount</span> UUID=<span class="u">YOUR-EFI-UUID</span> /efi</pre></div>
+</div>
+
+<!-- 5 -->
+<div class="sec" id="s5">
+  <div class="sec-hd"><div class="sn sn-b">5</div><h2 class="st">Configure make.conf</h2></div>
+  <div class="cl ci"><span class="cl-i">📌</span><p>Use <code>nano</code> here — vim is not installed yet. Portage itself isn't synced until the next step so you cannot emerge anything yet. Vim gets installed in Step 6 immediately after <code>emerge-webrsync</code>.</p></div>
+  <div class="cb"><div class="cbh"><div class="dots"><span class="dr"></span><span class="dy"></span><span class="dg"></span></div><span class="cbl">chroot</span></div>
+  <pre><span class="c">nano</span> /etc/portage/make.conf</pre></div>
+  <div class="cb"><div class="cbh"><div class="dots"><span class="dr"></span><span class="dy"></span><span class="dg"></span></div><span class="cbl">/etc/portage/make.conf — full contents</span></div>
+  <pre><span class="cm"># Compiler flags — native targets your exact AMD CPU</span>
+<span class="k">COMMON_FLAGS</span>=<span class="s">"-march=native -O2 -pipe"</span>
+<span class="k">CFLAGS</span>=<span class="s">"${COMMON_FLAGS}"</span>
+<span class="k">CXXFLAGS</span>=<span class="s">"${COMMON_FLAGS}"</span>
+
+<span class="cm"># Parallel jobs — run nproc to check your thread count</span>
+<span class="cm"># Rule: at least 2GB RAM per job (e.g. -j16 needs 32GB RAM)</span>
+<span class="k">MAKEOPTS</span>=<span class="s">"-j16 -l17"</span>
+
+<span class="cm"># USE flags</span>
+<span class="k">USE</span>=<span class="s">"dist-kernel networkmanager"</span>
+
+<span class="cm"># AMD GPU drivers</span>
+<span class="k">VIDEO_CARDS</span>=<span class="s">"amdgpu radeonsi"</span>
+
+<span class="cm"># Accept pre-compiled binary firmware blobs (nothing compiled from source)</span>
+<span class="k">ACCEPT_LICENSE</span>=<span class="s">"-* @FREE @BINARY-REDISTRIBUTABLE"</span>
+
+</pre></div>
+</div>
+
+<!-- 6 -->
+<div class="sec" id="s6">
+  <div class="sec-hd"><div class="sn sn-b">6</div><h2 class="st">Portage Snapshot &amp; Profile</h2></div>
+  <h3>Install Portage snapshot</h3>
+  <p>This downloads the Gentoo package tree. Nothing can be emerged until this runs.</p>
+  <div class="cb"><div class="cbh"><div class="dots"><span class="dr"></span><span class="dy"></span><span class="dg"></span></div><span class="cbl">chroot</span></div>
+  <pre><span class="c">emerge-webrsync</span></pre></div>
+
+  <h3>Install vim</h3>
+  <p>Now that the package tree exists, install vim immediately so all remaining config files can be edited properly.</p>
+  <div class="cb"><div class="cbh"><div class="dots"><span class="dr"></span><span class="dy"></span><span class="dg"></span></div><span class="cbl">chroot</span></div>
+  <pre><span class="c">emerge</span> <span class="a">--ask</span> app-editors/vim</pre></div>
+
+  <h3>Read news items</h3>
+  <div class="cb"><div class="cbh"><div class="dots"><span class="dr"></span><span class="dy"></span><span class="dg"></span></div><span class="cbl">chroot</span></div>
+  <pre><span class="c">eselect</span> news list
+<span class="c">eselect</span> news read</pre></div>
+  <h3>Optional: select a fast mirror</h3>
+  <div class="cb"><div class="cbh"><div class="dots"><span class="dr"></span><span class="dy"></span><span class="dg"></span></div><span class="cbl">chroot — optional but speeds up source downloads</span></div>
+  <pre><span class="c">emerge</span> <span class="a">--ask --oneshot</span> app-portage/mirrorselect
+<span class="c">mirrorselect</span> <span class="a">-i -o</span> >> /etc/portage/make.conf</pre></div>
+  <h3>Select profile</h3>
+  <div class="cb"><div class="cbh"><div class="dots"><span class="dr"></span><span class="dy"></span><span class="dg"></span></div><span class="cbl">chroot</span></div>
+  <pre><span class="c">eselect</span> profile list
+<span class="cm"># Find and select: default/linux/amd64/23.0  (no /desktop suffix — minimal TTY)</span>
+<span class="c">eselect</span> profile set 1    <span class="cm"># replace 1 with the actual number</span>
+<span class="c">eselect</span> profile show</pre></div>
+  <div class="cl cw"><span class="cl-i">⚠️</span><p>Do <strong>not</strong> select any profile with "systemd" in the name. Choose the plain <code>default/linux/amd64/23.0</code> OpenRC profile.</p></div>
+  <h3>Update @world</h3>
+  <div class="cb"><div class="cbh"><div class="dots"><span class="dr"></span><span class="dy"></span><span class="dg"></span></div><span class="cbl">chroot — compiles from source</span></div>
+  <pre><span class="c">emerge</span> <span class="a">--ask --verbose --update --deep --changed-use</span> @world
+<span class="c">emerge</span> <span class="a">--ask --depclean</span></pre></div>
+</div>
+
+<!-- 7 -->
+<div class="sec" id="s7">
+  <div class="sec-hd"><div class="sn sn-b">7</div><h2 class="st">CPU Flags &amp; GPU Flags</h2></div>
+  <h3>Auto-detect CPU instruction sets</h3>
+  <div class="cb"><div class="cbh"><div class="dots"><span class="dr"></span><span class="dy"></span><span class="dg"></span></div><span class="cbl">chroot</span></div>
+  <pre><span class="c">emerge</span> <span class="a">--ask --oneshot</span> app-portage/cpuid2cpuflags
+<span class="c">echo</span> <span class="s">"*/* $(cpuid2cpuflags)"</span> > /etc/portage/package.use/00cpu-flags
+<span class="c">cat</span> /etc/portage/package.use/00cpu-flags    <span class="cm"># verify</span></pre></div>
+  <h3>AMD GPU driver flags</h3>
+  <div class="cb"><div class="cbh"><div class="dots"><span class="dr"></span><span class="dy"></span><span class="dg"></span></div><span class="cbl">chroot</span></div>
+  <pre><span class="c">echo</span> <span class="s">'*/* VIDEO_CARDS: -* amdgpu radeonsi'</span> > /etc/portage/package.use/00video-cards</pre></div>
+</div>
+
+<!-- 8 -->
+<div class="sec" id="s8">
+  <div class="sec-hd"><div class="sn sn-g">8</div><h2 class="st">Firmware &amp; Microcode</h2></div>
+  <p>AMD CPU microcode is bundled inside <code>linux-firmware</code> — no separate microcode package needed. SOF firmware is required for Ryzen integrated audio.</p>
+  <div class="cl ci"><span class="cl-i">📌</span><p><code>@BINARY-REDISTRIBUTABLE</code> permits installing pre-compiled binary blobs. Nothing is compiled — Portage copies <code>.bin</code>/<code>.fw</code> files to <code>/lib/firmware/</code>. The license gate is purely due to proprietary redistribution terms.</p></div>
+  <h3>Accept firmware license (only if emerge rejects it)</h3>
+  <div class="cb"><div class="cbh"><div class="dots"><span class="dr"></span><span class="dy"></span><span class="dg"></span></div><span class="cbl">chroot</span></div>
+  <pre><span class="c">echo</span> <span class="s">'sys-kernel/linux-firmware @BINARY-REDISTRIBUTABLE'</span> >> /etc/portage/package.license</pre></div>
+  <h3>Install firmware packages</h3>
+  <div class="cb"><div class="cbh"><div class="dots"><span class="dr"></span><span class="dy"></span><span class="dg"></span></div><span class="cbl">chroot</span></div>
+  <pre><span class="c">emerge</span> <span class="a">--ask</span> sys-kernel/linux-firmware    <span class="cm"># AMD GPU, WiFi, CPU microcode</span>
+<span class="c">emerge</span> <span class="a">--ask</span> sys-firmware/sof-firmware     <span class="cm"># Ryzen integrated audio firmware</span></pre></div>
+</div>
+
+<!-- 9 -->
+<div class="sec" id="s9">
+  <div class="sec-hd"><div class="sn sn-b">9</div><h2 class="st">Timezone &amp; Locale</h2></div>
+  <h3>Timezone</h3>
+  <div class="cb"><div class="cbh"><div class="dots"><span class="dr"></span><span class="dy"></span><span class="dg"></span></div><span class="cbl">chroot — adjust to your zone</span></div>
+  <pre><span class="c">ls</span> /usr/share/zoneinfo/America/    <span class="cm"># browse zones</span>
+<span class="c">ln</span> <span class="a">-sf</span> ../usr/share/zoneinfo/America/Chicago /etc/localtime
+<span class="cm"># Common US: Chicago, New_York, Denver, Los_Angeles, Anchorage, Honolulu</span></pre></div>
+  <h3>Locale</h3>
+  <div class="cb"><div class="cbh"><div class="dots"><span class="dr"></span><span class="dy"></span><span class="dg"></span></div><span class="cbl">chroot</span></div>
+  <pre><span class="c">echo</span> <span class="s">'en_US.UTF-8 UTF-8'</span> > /etc/locale.gen
+<span class="c">locale-gen</span>
+<span class="c">eselect</span> locale list
+<span class="c">eselect</span> locale set en_US.utf8    <span class="cm"># use number matching en_US.UTF-8</span>
+<span class="c">env-update</span> && <span class="c">source</span> /etc/profile && <span class="c">export</span> <span class="k">PS1</span>=<span class="s">"(chroot) ${PS1}"</span></pre></div>
+</div>
+
+<!-- 10 -->
+<div class="sec" id="s10">
+  <div class="sec-hd"><div class="sn sn-r">10</div><h2 class="st">Configure /etc/fstab</h2></div>
+  <p>All three partitions use UUID. Never use <code>/dev/nvme*</code> paths here.</p>
+  <div class="cl cw"><span class="cl-i">⚠️</span><p>Replace <code>YOUR-EFI-UUID</code>, <code>YOUR-SWAP-UUID</code>, and <code>YOUR-ROOT-UUID</code> with your actual values from <code>blkid</code> before running.</p></div>
+  <div class="cb"><div class="cbh"><div class="dots"><span class="dr"></span><span class="dy"></span><span class="dg"></span></div><span class="cbl">chroot — replace all 3 UUIDs first</span></div>
+  <pre><span class="c">cat</span> > /etc/fstab <span class="s">&lt;&lt;'EOF'</span>
+UUID=<span class="u">YOUR-EFI-UUID</span>    /efi   vfat   umask=0077,tz=UTC   0 2
+UUID=<span class="u">YOUR-SWAP-UUID</span>   none   swap   sw                  0 0
+UUID=<span class="u">YOUR-ROOT-UUID</span>   /      ext4   defaults,noatime    0 1
+EOF</span></pre></div>
+</div>
+
+<!-- 11 -->
+<div class="sec" id="s11">
+  <div class="sec-hd"><div class="sn sn-b">11</div><h2 class="st">Hostname &amp; Networking</h2></div>
+  <h3>Hostname and hosts file</h3>
+  <div class="cb"><div class="cbh"><div class="dots"><span class="dr"></span><span class="dy"></span><span class="dg"></span></div><span class="cbl">chroot — replace 'taichi' with your hostname</span></div>
+  <pre><span class="c">echo</span> <span class="s">'taichi'</span> > /etc/hostname
+
+<span class="c">cat</span> > /etc/hosts <span class="s">&lt;&lt;'EOF'</span>
+127.0.0.1   taichi.localdomain taichi localhost
+::1         taichi.localdomain taichi localhost
+EOF</span></pre></div>
+  <h3>Install NetworkManager</h3>
+  <div class="cb"><div class="cbh"><div class="dots"><span class="dr"></span><span class="dy"></span><span class="dg"></span></div><span class="cbl">chroot</span></div>
+  <pre><span class="c">echo</span> <span class="s">'net-wireless/wpa_supplicant dbus'</span> >> /etc/portage/package.use/networkmanager
+<span class="c">emerge</span> <span class="a">--ask</span> net-misc/networkmanager
+<span class="c">rc-update</span> add NetworkManager default
+<span class="c">rc-update</span> add dbus default    <span class="cm"># NetworkManager requires dbus</span></pre></div>
+</div>
+
+<!-- 12 -->
+<div class="sec" id="s12">
+  <div class="sec-hd"><div class="sn sn-b">12</div><h2 class="st">System Tools</h2></div>
+  <h3>System logger</h3>
+  <div class="cb"><div class="cbh"><div class="dots"><span class="dr"></span><span class="dy"></span><span class="dg"></span></div><span class="cbl">chroot</span></div>
+  <pre><span class="c">emerge</span> <span class="a">--ask</span> app-admin/sysklogd && <span class="c">rc-update</span> add sysklogd default</pre></div>
+  <h3>Cron daemon</h3>
+  <div class="cb"><div class="cbh"><div class="dots"><span class="dr"></span><span class="dy"></span><span class="dg"></span></div><span class="cbl">chroot</span></div>
+  <pre><span class="c">emerge</span> <span class="a">--ask</span> sys-process/cronie && <span class="c">rc-update</span> add cronie default</pre></div>
+  <h3>Time sync</h3>
+  <div class="cb"><div class="cbh"><div class="dots"><span class="dr"></span><span class="dy"></span><span class="dg"></span></div><span class="cbl">chroot</span></div>
+  <pre><span class="c">emerge</span> <span class="a">--ask</span> net-misc/chrony && <span class="c">rc-update</span> add chronyd default</pre></div>
+  <h3>Filesystem tools</h3>
+  <div class="cb"><div class="cbh"><div class="dots"><span class="dr"></span><span class="dy"></span><span class="dg"></span></div><span class="cbl">chroot</span></div>
+  <pre><span class="c">emerge</span> <span class="a">--ask</span> sys-fs/e2fsprogs sys-fs/dosfstools sys-block/io-scheduler-udev-rules</pre></div>
+  <h3>OpenRC config files</h3>
+  <div class="cb"><div class="cbh"><div class="dots"><span class="dr"></span><span class="dy"></span><span class="dg"></span></div><span class="cbl">chroot — review each</span></div>
+  <pre><span class="c">vim</span> /etc/rc.conf          <span class="cm"># consider rc_parallel="YES"</span>
+<span class="c">vim</span> /etc/conf.d/keymaps   <span class="cm"># set keymap="us"</span>
+<span class="c">vim</span> /etc/conf.d/hwclock   <span class="cm"># set clock="UTC"</span></pre></div>
+</div>
+
+<!-- 13 -->
+<div class="sec" id="s13">
+  <div class="sec-hd"><div class="sn sn-p">13</div><h2 class="st">Configure installkernel for UKI</h2></div>
+  <p><code>installkernel</code> drives the whole kernel install pipeline: dracut builds the initramfs, systemd-stub bundles it into a UKI, and the <code>.efi</code> lands in <code>/efi/EFI/Gentoo/</code>.</p>
+  <div class="cl cd"><span class="cl-i">🚫</span><p><strong>Do NOT</strong> add <code>systemd</code> or <code>systemd-boot</code> USE flags. <code>sys-apps/systemd-utils</code> provides only the EFI stub loader — it does not touch OpenRC.</p></div>
+  <div class="cb"><div class="cbh"><div class="dots"><span class="dr"></span><span class="dy"></span><span class="dg"></span></div><span class="cbl">chroot</span></div>
+  <pre><span class="c">echo</span> <span class="s">'sys-apps/systemd-utils boot kernel-install'</span> >> /etc/portage/package.use/installkernel
+<span class="c">echo</span> <span class="s">'sys-kernel/installkernel dracut uki'</span> >> /etc/portage/package.use/installkernel
+
+<span class="c">emerge</span> <span class="a">--ask</span> sys-apps/systemd-utils
+<span class="c">emerge</span> <span class="a">--ask</span> sys-kernel/installkernel</pre></div>
+</div>
+
+<!-- 14 -->
+<div class="sec" id="s14">
+  <div class="sec-hd"><div class="sn sn-r">14</div><h2 class="st">Dracut Config — Embed Root UUID</h2></div>
+  <p>The root UUID must be embedded in the kernel command line so the system can find root at boot — there's no bootloader in the chain to supply it. Three files are required. installkernel's chroot detection script checks each one in turn and fails if none are found.</p>
+
+  <div class="cl cw"><span class="cl-i">⚠️</span><p>Replace <code>YOUR-ROOT-UUID</code> in all commands below with your actual root partition UUID from <code>blkid</code>. Run <code>blkid | grep ext4</code> if you need to look it up.</p></div>
+
+  <div class="cl cd"><span class="cl-i">🚫</span><p><strong>All three files are required — do not skip any.</strong> installkernel's chroot check (<code>05-check-chroot.install</code>) searches for a cmdline across multiple locations. If none exist the kernel post-install fails, even if your prompt says <code>(chroot)</code>. Make sure you are inside the chroot before running these.</p></div>
+
+  <h3>Create all three cmdline files</h3>
+  <div class="cb"><div class="cbh"><div class="dots"><span class="dr"></span><span class="dy"></span><span class="dg"></span></div><span class="cbl">chroot — replace YOUR-ROOT-UUID in every command</span></div>
+  <pre><span class="c">mkdir</span> <span class="a">-p</span> /etc/dracut.conf.d /etc/cmdline.d /etc/kernel
+
+<span class="cm"># File 1: checked by installkernel's chroot detection script</span>
+<span class="c">echo</span> <span class="s">"root=UUID=<span class="u">YOUR-ROOT-UUID</span> quiet"</span> > /etc/kernel/cmdline
+
+<span class="cm"># File 2: used by installkernel's dracut integration</span>
+<span class="c">echo</span> <span class="s">'kernel_cmdline=" root=UUID=<span class="u">YOUR-ROOT-UUID</span> quiet "'</span> > /etc/dracut.conf.d/00-installkernel.conf
+<span class="cm">#                              ^ space required       ^ space required — keep both</span>
+
+<span class="cm"># File 3: used by dracut when building the UKI</span>
+<span class="c">printf</span> <span class="s">'uefi="yes"\nkernel_cmdline="root=UUID=<span class="u">YOUR-ROOT-UUID</span> quiet"\n'</span> > /etc/dracut.conf.d/uki.conf</pre></div>
+
+  <h3>Verify all files were written correctly</h3>
+  <p>Run these before proceeding to the kernel install. If any of them show nothing or the wrong UUID, fix it now — not after a failed emerge.</p>
+  <div class="cb"><div class="cbh"><div class="dots"><span class="dr"></span><span class="dy"></span><span class="dg"></span></div><span class="cbl">chroot — all four should show your UUID</span></div>
+  <pre><span class="c">cat</span> /etc/kernel/cmdline
+<span class="c">cat</span> /etc/dracut.conf.d/00-installkernel.conf
+<span class="c">cat</span> /etc/dracut.conf.d/uki.conf
+<span class="c">grep</span> <span class="s">'root=UUID'</span> /etc/kernel/cmdline /etc/dracut.conf.d/*.conf   <span class="cm"># all three in one shot</span></pre></div>
+
+  <h3>Verify EFI is mounted and has space</h3>
+  <div class="cb"><div class="cbh"><div class="dots"><span class="dr"></span><span class="dy"></span><span class="dg"></span></div><span class="cbl">chroot</span></div>
+  <pre><span class="c">mount</span> | <span class="c">grep</span> /efi   <span class="cm"># must show your EFI partition mounted</span>
+<span class="c">df</span> <span class="a">-h</span> /efi          <span class="cm"># need 100MB+ free</span>
+<span class="c">ls</span> /efi/EFI/Gentoo  <span class="cm"># directory must exist</span></pre></div>
+</div>
+
+<!-- 15 -->
+<div class="sec" id="s15">
+  <div class="sec-hd"><div class="sn sn-g">15</div><h2 class="st">Install the Kernel</h2></div>
+  <div class="cb"><div class="cbh"><div class="dots"><span class="dr"></span><span class="dy"></span><span class="dg"></span></div><span class="cbl">chroot</span></div>
+  <pre><span class="c">emerge</span> <span class="a">--ask</span> sys-kernel/gentoo-kernel</pre></div>
+  <h3>Confirm the UKI was created</h3>
+  <div class="cb"><div class="cbh"><div class="dots"><span class="dr"></span><span class="dy"></span><span class="dg"></span></div><span class="cbl">chroot</span></div>
+  <pre><span class="c">ls</span> <span class="a">-lh</span> /efi/EFI/Gentoo/    <span class="cm"># should show .efi file(s)</span>
+<span class="c">strings</span> /efi/EFI/Gentoo/gentoo-*.efi | <span class="c">grep</span> <span class="s">'root=UUID'</span>    <span class="cm"># confirm UUID embedded</span></pre></div>
+  <div class="cl ct"><span class="cl-i">💡</span><p>If emerge fails with "Dracut will be run from inside a chroot but no cmdline configured": run <code>cat /etc/kernel/cmdline</code> and <code>cat /etc/dracut.conf.d/00-installkernel.conf</code>. If either file is missing or empty, the commands in Step 14 were not run inside the chroot. Re-enter the chroot, recreate the files, then retry with <code>emerge --config '=sys-kernel/gentoo-kernel-6.18.18:6.18.18'</code>.</p></div>
+</div>
+
+<!-- 16 -->
+<div class="sec" id="s16">
+  <div class="sec-hd"><div class="sn sn-p">16</div><h2 class="st">Register the UEFI Boot Entry</h2></div>
+  <p>One-time operation. Writes a boot entry into UEFI NVRAM pointing to your UKI.</p>
+  <div class="cb"><div class="cbh"><div class="dots"><span class="dr"></span><span class="dy"></span><span class="dg"></span></div><span class="cbl">chroot — replace gentoo-x.y.z.efi with your actual filename</span></div>
+  <pre><span class="c">emerge</span> <span class="a">--ask</span> sys-boot/efibootmgr
+
+<span class="c">ls</span> /efi/EFI/Gentoo/    <span class="cm"># get exact .efi filename first</span>
+
+<span class="c">efibootmgr</span> <span class="a">--create</span> <span class="a">--disk</span> /dev/nvme0n1 <span class="a">--part</span> 1 \
+  <span class="a">--label</span> <span class="s">"Gentoo Linux"</span> \
+  <span class="a">--loader</span> <span class="s">"\EFI\Gentoo\gentoo-x.y.z.efi"</span>
+
+<span class="c">efibootmgr</span> <span class="a">-v</span>    <span class="cm"># verify entry was added</span></pre></div>
+  <div class="cl ci"><span class="cl-i">📌</span><p>The backslash in <code>--loader</code> is required by UEFI spec. Using <code>/dev/nvme0n1</code> for <code>--disk</code> here is fine — it's a one-time command to write NVRAM, not a config file read at boot.</p></div>
+</div>
+
+<!-- 17 -->
+<div class="sec" id="s17">
+  <div class="sec-hd"><div class="sn sn-b">17</div><h2 class="st">Root Password &amp; Users</h2></div>
+  <div class="cb"><div class="cbh"><div class="dots"><span class="dr"></span><span class="dy"></span><span class="dg"></span></div><span class="cbl">chroot — replace 'yourname' with your username</span></div>
+  <pre><span class="c">passwd</span>    <span class="cm"># set root password</span>
+
+<span class="c">useradd</span> <span class="a">-m -G</span> users,wheel,audio,usb,video <span class="a">-s</span> /bin/bash yourname
+<span class="c">passwd</span> yourname
+
+<span class="c">emerge</span> <span class="a">--ask</span> app-admin/sudo
+<span class="c">echo</span> <span class="s">'%wheel ALL=(ALL:ALL) ALL'</span> > /etc/sudoers.d/wheel</pre></div>
+</div>
+
+<!-- 18 -->
+<div class="sec" id="s18">
+  <div class="sec-hd"><div class="sn sn-g">18</div><h2 class="st">Exit, Unmount &amp; Reboot</h2></div>
+  <div class="cb"><div class="cbh"><div class="dots"><span class="dr"></span><span class="dy"></span><span class="dg"></span></div><span class="cbl">chroot → live → reboot</span></div>
+  <pre><span class="c">exit</span>
+
+<span class="c">cd</span>
+<span class="c">umount</span> <span class="a">-l</span> /mnt/gentoo/dev{/shm,/pts,}
+<span class="c">umount</span> <span class="a">-R</span> /mnt/gentoo
+
+<span class="cm"># Remove the live USB then:</span>
+<span class="c">reboot</span></pre></div>
+  <h3>First boot checks</h3>
+  <div class="cb"><div class="cbh"><div class="dots"><span class="dr"></span><span class="dy"></span><span class="dg"></span></div><span class="cbl">first boot — as root</span></div>
+  <pre><span class="c">uname</span> <span class="a">-r</span>                     <span class="cm"># confirm running new Gentoo kernel</span>
+<span class="c">rc-status</span>                    <span class="cm"># all services should show [started]</span>
+<span class="c">dmesg</span> | <span class="c">grep</span> <span class="a">-i</span> firmware    <span class="cm"># confirm AMD firmware loaded</span>
+<span class="c">dmesg</span> | <span class="c">grep</span> <span class="a">-i</span> microcode   <span class="cm"># confirm AMD microcode applied</span>
+<span class="c">nmtui</span>                        <span class="cm"># connect to network via TUI</span>
+<span class="c">efibootmgr</span> <span class="a">-v</span>              <span class="cm"># confirm Gentoo boot entry registered</span></pre></div>
+  <div class="cl ct"><span class="cl-i">💡</span><p>Future kernel updates are fully automatic via <code>emerge --ask @world</code>. The UKI rebuild and EFI update happen automatically thanks to <code>installkernel</code> and the <code>dist-kernel</code> USE flag.</p></div>
+</div>
+
+<!-- QR -->
+<div class="sec" id="qr">
+  <div class="sec-hd"><div class="sn sn-y">★</div><h2 class="st">Quick Reference — All Critical Commands</h2></div>
+  <div class="cl cd"><span class="cl-i">🚫</span><p>Replace every <code>YOUR-EFI-UUID</code>, <code>YOUR-SWAP-UUID</code>, and <code>YOUR-ROOT-UUID</code> with actual values from <code>blkid</code>.</p></div>
+
+  <h3>Live environment — partition, format, mount</h3>
+  <div class="cb"><div class="cbh"><div class="dots"><span class="dr"></span><span class="dy"></span><span class="dg"></span></div><span class="cbl">replace nvme0n1 with your install drive</span></div>
+  <pre><span class="c">fdisk</span> /dev/nvme0n1     <span class="cm"># g → new GPT | n+t × 3 | p to verify | w to save</span>
+<span class="c">mkfs.fat</span> <span class="a">-F 32</span> /dev/nvme0n1p1
+<span class="c">mkswap</span> /dev/nvme0n1p2 && <span class="c">swapon</span> /dev/nvme0n1p2
+<span class="c">mkfs.ext4</span> /dev/nvme0n1p3
+<span class="c">mount</span> /dev/nvme0n1p3 /mnt/gentoo
+<span class="c">mkdir</span> <span class="a">-p</span> /mnt/gentoo/efi && <span class="c">mount</span> /dev/nvme0n1p1 /mnt/gentoo/efi
+<span class="c">blkid</span>    <span class="cm"># WRITE DOWN YOUR 3 UUIDs NOW</span></pre></div>
+
+  <h3>package.use (chroot)</h3>
+  <div class="cb"><div class="cbh"><div class="dots"><span class="dr"></span><span class="dy"></span><span class="dg"></span></div><span class="cbl">no substitution needed</span></div>
+  <pre><span class="c">echo</span> <span class="s">'sys-apps/systemd-utils boot kernel-install'</span> >> /etc/portage/package.use/installkernel
+<span class="c">echo</span> <span class="s">'sys-kernel/installkernel dracut uki'</span> >> /etc/portage/package.use/installkernel
+<span class="c">echo</span> <span class="s">'net-wireless/wpa_supplicant dbus'</span> >> /etc/portage/package.use/networkmanager
+<span class="c">echo</span> <span class="s">'*/* VIDEO_CARDS: -* amdgpu radeonsi'</span> > /etc/portage/package.use/00video-cards</pre></div>
+
+  <h3>fstab (chroot — replace all 3 UUIDs)</h3>
+  <div class="cb"><div class="cbh"><div class="dots"><span class="dr"></span><span class="dy"></span><span class="dg"></span></div><span class="cbl">chroot</span></div>
+  <pre><span class="c">cat</span> > /etc/fstab <span class="s">&lt;&lt;'EOF'</span>
+UUID=<span class="u">YOUR-EFI-UUID</span>    /efi   vfat   umask=0077,tz=UTC   0 2
+UUID=<span class="u">YOUR-SWAP-UUID</span>   none   swap   sw                  0 0
+UUID=<span class="u">YOUR-ROOT-UUID</span>   /      ext4   defaults,noatime    0 1
+EOF</span></pre></div>
+
+  <h3>Dracut (chroot — replace YOUR-ROOT-UUID in all commands)</h3>
+  <div class="cb"><div class="cbh"><div class="dots"><span class="dr"></span><span class="dy"></span><span class="dg"></span></div><span class="cbl">chroot</span></div>
+  <pre><span class="c">mkdir</span> <span class="a">-p</span> /etc/dracut.conf.d /etc/cmdline.d /etc/kernel
+<span class="c">echo</span> <span class="s">"root=UUID=<span class="u">YOUR-ROOT-UUID</span> quiet"</span> > /etc/kernel/cmdline
+<span class="c">echo</span> <span class="s">'kernel_cmdline=" root=UUID=<span class="u">YOUR-ROOT-UUID</span> quiet "'</span> > /etc/dracut.conf.d/00-installkernel.conf
+<span class="c">printf</span> <span class="s">'uefi="yes"\nkernel_cmdline="root=UUID=<span class="u">YOUR-ROOT-UUID</span> quiet"\n'</span> > /etc/dracut.conf.d/uki.conf
+<span class="cm"># Verify before continuing:</span>
+<span class="c">grep</span> <span class="s">'root=UUID'</span> /etc/kernel/cmdline /etc/dracut.conf.d/*.conf</pre></div>
+
+  <h3>Kernel install + boot entry (chroot)</h3>
+  <div class="cb"><div class="cbh"><div class="dots"><span class="dr"></span><span class="dy"></span><span class="dg"></span></div><span class="cbl">replace gentoo-x.y.z.efi with actual filename from ls</span></div>
+  <pre><span class="c">emerge</span> <span class="a">--ask</span> sys-kernel/gentoo-kernel
+<span class="c">ls</span> /efi/EFI/Gentoo/
+<span class="c">efibootmgr</span> <span class="a">--create --disk</span> /dev/nvme0n1 <span class="a">--part</span> 1 \
+  <span class="a">--label</span> <span class="s">"Gentoo Linux"</span> <span class="a">--loader</span> <span class="s">"\EFI\Gentoo\gentoo-x.y.z.efi"</span></pre></div>
+
+  <h3>Ongoing updates</h3>
+  <div class="cb"><div class="cbh"><div class="dots"><span class="dr"></span><span class="dy"></span><span class="dg"></span></div><span class="cbl">routine</span></div>
+  <pre><span class="c">emerge</span> <span class="a">--ask @world</span>
+<span class="c">emerge</span> <span class="a">--ask @module-rebuild</span>
+<span class="c">emerge</span> <span class="a">--config</span> sys-kernel/gentoo-kernel
+<span class="c">emerge</span> <span class="a">--ask --depclean</span></pre></div>
+</div>
+
+</main>
+</div>
+
+<script>
+const secs=document.querySelectorAll('.sec[id]'),links=document.querySelectorAll('nav a');
+const obs=new IntersectionObserver(e=>{e.forEach(en=>{if(en.isIntersecting){links.forEach(l=>l.classList.remove('active'));const a=document.querySelector(`nav a[href="#${en.target.id}"]`);if(a)a.classList.add('active')}})},{threshold:.2});
+secs.forEach(s=>obs.observe(s));
+</script>
+</body>
+</html>
