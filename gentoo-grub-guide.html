@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gentoo GRUB Guide — OpenRC + AMD</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=Barlow:wght@400;600;800;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f5f0e8;
+    --surface: #ede8df;
+    --surface2: #e3ddd3;
+    --border: #ccc5b5;
+    --ink: #1a1a18;
+    --ink2: #3d3d38;
+    --muted: #7a7568;
+    --accent: #c0392b;
+    --accent2: #e67e22;
+    --accent3: #27ae60;
+    --blue: #2980b9;
+    --code-bg: #1e1e1a;
+    --code-text: #d4cfbf;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Barlow', sans-serif;
+    min-height: 100vh;
+    line-height: 1.7;
+  }
+
+  /* Subtle grain texture */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    opacity: 0.025;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 999;
+  }
+
+  /* Ruled lines background */
+  .page-bg {
+    position: fixed;
+    inset: 0;
+    background-image: repeating-linear-gradient(
+      transparent,
+      transparent 31px,
+      rgba(0,0,0,0.06) 31px,
+      rgba(0,0,0,0.06) 32px
+    );
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    max-width: 880px;
+    margin: 0 auto;
+    padding: 56px 28px 100px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Header */
+  header {
+    margin-bottom: 52px;
+    padding-bottom: 28px;
+    border-bottom: 3px solid var(--ink);
+    animation: slideDown 0.5s ease both;
+  }
+
+  @keyframes slideDown {
+    from { opacity: 0; transform: translateY(-12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .header-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+
+  .eyebrow {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .eyebrow::before {
+    content: '';
+    display: inline-block;
+    width: 24px;
+    height: 2px;
+    background: var(--accent);
+  }
+
+  h1 {
+    font-size: clamp(32px, 5.5vw, 52px);
+    font-weight: 900;
+    line-height: 1.0;
+    letter-spacing: -0.03em;
+    color: var(--ink);
+  }
+
+  h1 em {
+    font-style: normal;
+    color: var(--accent);
+  }
+
+  .header-meta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  .tag {
+    display: inline-block;
+    background: var(--ink);
+    color: var(--bg);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 2px;
+  }
+
+  .tag.red { background: var(--accent); }
+  .tag.orange { background: var(--accent2); }
+  .tag.green { background: var(--accent3); }
+
+  .header-tags {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-top: 16px;
+  }
+
+  /* Steps */
+  .step {
+    margin-bottom: 32px;
+    border: 2px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+    background: #faf7f2;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    animation: fadeIn 0.4s ease both;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .step:nth-child(1) { animation-delay: 0.05s; }
+  .step:nth-child(2) { animation-delay: 0.08s; }
+  .step:nth-child(3) { animation-delay: 0.11s; }
+  .step:nth-child(4) { animation-delay: 0.14s; }
+  .step:nth-child(5) { animation-delay: 0.17s; }
+  .step:nth-child(6) { animation-delay: 0.20s; }
+  .step:nth-child(7) { animation-delay: 0.23s; }
+  .step:nth-child(8) { animation-delay: 0.26s; }
+  .step:nth-child(9) { animation-delay: 0.29s; }
+
+  .step:hover {
+    border-color: var(--ink);
+    box-shadow: 4px 4px 0 var(--ink);
+  }
+
+  .step-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 20px;
+    background: var(--surface);
+    border-bottom: 2px solid var(--border);
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.15s;
+  }
+
+  .step-header:hover { background: var(--surface2); }
+
+  .step-num {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--accent);
+    background: rgba(192,57,43,0.1);
+    border: 1px solid rgba(192,57,43,0.3);
+    padding: 3px 8px;
+    border-radius: 2px;
+    flex-shrink: 0;
+    letter-spacing: 0.05em;
+  }
+
+  .step-title {
+    font-size: 15px;
+    font-weight: 800;
+    flex: 1;
+    letter-spacing: -0.01em;
+  }
+
+  .step-tag-sm {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    font-weight: 400;
+    margin-left: 8px;
+    letter-spacing: 0.05em;
+  }
+
+  .chevron {
+    font-size: 11px;
+    color: var(--muted);
+    transition: transform 0.2s;
+    flex-shrink: 0;
+  }
+
+  .step.open .chevron { transform: rotate(180deg); }
+
+  .step-body {
+    padding: 20px 22px;
+    display: none;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .step.open .step-body { display: flex; }
+
+  /* Notes */
+  .note {
+    display: flex;
+    gap: 10px;
+    padding: 11px 14px;
+    border-radius: 3px;
+    font-size: 13.5px;
+    line-height: 1.6;
+    font-family: 'Barlow', sans-serif;
+  }
+
+  .note.warn {
+    background: rgba(230,126,34,0.08);
+    border-left: 3px solid var(--accent2);
+    color: #7a4a10;
+  }
+
+  .note.info {
+    background: rgba(41,128,185,0.07);
+    border-left: 3px solid var(--blue);
+    color: #1a4060;
+  }
+
+  .note.success {
+    background: rgba(39,174,96,0.07);
+    border-left: 3px solid var(--accent3);
+    color: #1a4a2a;
+  }
+
+  .note.danger {
+    background: rgba(192,57,43,0.07);
+    border-left: 3px solid var(--accent);
+    color: #5a1a14;
+  }
+
+  .note-icon { font-size: 15px; flex-shrink: 0; margin-top: 1px; }
+
+  /* Code blocks */
+  .code-block {
+    border-radius: 3px;
+    overflow: hidden;
+    border: 1px solid #2e2e28;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+  }
+
+  .code-label {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 7px 14px;
+    background: #161612;
+    border-bottom: 1px solid #2e2e28;
+    font-size: 10px;
+    color: #5a5a50;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .code-label .lang { color: var(--accent2); font-weight: 700; }
+
+  .copy-btn {
+    background: transparent;
+    border: 1px solid #3a3a30;
+    color: #5a5a50;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    padding: 2px 9px;
+    border-radius: 2px;
+    cursor: pointer;
+    transition: all 0.15s;
+    letter-spacing: 0.08em;
+  }
+
+  .copy-btn:hover { border-color: var(--accent2); color: var(--accent2); }
+  .copy-btn.copied { border-color: var(--accent3); color: var(--accent3); }
+
+  .code-content {
+    background: var(--code-bg);
+    padding: 16px;
+    overflow-x: auto;
+    line-height: 1.9;
+    white-space: pre;
+    color: var(--code-text);
+  }
+
+  .code-content .cmd { color: #f0b429; }
+  .code-content .flag { color: #79c0ff; }
+  .code-content .str { color: #9ecbff; }
+  .code-content .cmt { color: #484840; font-style: italic; }
+  .code-content .path { color: #85e89d; }
+  .code-content .kw { color: #f97583; }
+  .code-content .num { color: #b8bb26; }
+
+  /* File blocks */
+  .file-block {
+    border-radius: 3px;
+    overflow: hidden;
+    border: 1px solid rgba(39,174,96,0.3);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+  }
+
+  .file-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 14px;
+    background: rgba(39,174,96,0.06);
+    border-bottom: 1px solid rgba(39,174,96,0.2);
+    font-size: 10px;
+    color: var(--accent3);
+    letter-spacing: 0.05em;
+  }
+
+  .file-label::before { content: '▸ FILE'; font-weight: 700; color: var(--accent3); margin-right: 4px; }
+
+  .file-content {
+    background: var(--code-bg);
+    padding: 14px 16px;
+    overflow-x: auto;
+    line-height: 1.9;
+    white-space: pre;
+    color: var(--code-text);
+  }
+
+  /* Section divider */
+  .section-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 40px 0 20px;
+  }
+
+  .section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* Checklist */
+  .checklist {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .check-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 11px 16px;
+    border-radius: 3px;
+    background: #faf7f2;
+    border: 1px solid var(--border);
+    cursor: pointer;
+    transition: all 0.15s;
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .check-item:hover { border-color: var(--ink); background: var(--surface); }
+  .check-item.done { border-color: rgba(39,174,96,0.4); background: rgba(39,174,96,0.04); }
+  .check-item.done .check-box { background: var(--accent3); border-color: var(--accent3); color: white; }
+  .check-item.done .check-text { color: var(--muted); text-decoration: line-through; font-weight: 400; }
+
+  .check-box {
+    width: 20px;
+    height: 20px;
+    border-radius: 3px;
+    border: 2px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 11px;
+    font-weight: 700;
+    transition: all 0.15s;
+  }
+
+  /* Progress */
+  .progress-wrap { margin-bottom: 20px; }
+
+  .progress-label {
+    display: flex;
+    justify-content: space-between;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    margin-bottom: 6px;
+    letter-spacing: 0.05em;
+  }
+
+  .progress-track {
+    height: 5px;
+    background: var(--surface2);
+    border-radius: 0;
+    border: 1px solid var(--border);
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: var(--accent3);
+    transition: width 0.35s ease;
+  }
+
+  /* Flow diagram */
+  .flow-diagram {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr auto 1fr auto 1fr;
+    align-items: center;
+    gap: 6px;
+    padding: 20px;
+    background: var(--code-bg);
+    border-radius: 3px;
+    border: 1px solid #2e2e28;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    overflow-x: auto;
+  }
+
+  .flow-node {
+    background: #2a2a24;
+    border: 1px solid #3e3e34;
+    border-radius: 3px;
+    padding: 10px 12px;
+    text-align: center;
+    line-height: 1.4;
+    min-width: 90px;
+  }
+
+  .flow-node .node-label { color: #d4cfbf; font-weight: 600; font-size: 11px; }
+  .flow-node .node-sub { color: #5a5a50; font-size: 10px; margin-top: 3px; }
+  .flow-node.hl { border-color: var(--accent2); }
+  .flow-node.hl .node-label { color: var(--accent2); }
+  .flow-arrow-h { color: #5a5a50; font-size: 18px; text-align: center; }
+
+  /* Responsive */
+  @media (max-width: 600px) {
+    .flow-diagram { grid-template-columns: 1fr; }
+    .flow-arrow-h { transform: rotate(90deg); }
+    .header-meta { display: none; }
+  }
+
+  /* Footer */
+  footer {
+    margin-top: 64px;
+    padding-top: 20px;
+    border-top: 2px solid var(--ink);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  footer strong { color: var(--ink); }
+</style>
+</head>
+<body>
+<div class="page-bg"></div>
+<div class="container">
+
+  <header>
+    <div class="header-top">
+      <div>
+        <div class="eyebrow">Gentoo Linux — AMD64 Handbook</div>
+        <h1>GRUB Bootloader<br>Setup Guide<br><em>OpenRC + AMD</em></h1>
+        <div class="header-tags">
+          <span class="tag red">OpenRC</span>
+          <span class="tag orange">AMD x86_64</span>
+          <span class="tag green">GRUB2</span>
+          <span class="tag">UEFI</span>
+        </div>
+      </div>
+      <div class="header-meta">
+        <span>Copy-paste ready</span>
+        <span>9 steps</span>
+        <span>Standard layout</span>
+        <span style="margin-top:8px;font-size:16px;color:var(--ink)">🐧</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- HOW IT WORKS -->
+  <div class="step open">
+    <div class="step-header" onclick="toggleStep(this)">
+      <div class="step-num">OVERVIEW</div>
+      <div class="step-title">How GRUB fits into the boot process</div>
+      <div class="chevron">▼</div>
+    </div>
+    <div class="step-body">
+      <div class="flow-diagram">
+        <div class="flow-node hl">
+          <div class="node-label">UEFI</div>
+          <div class="node-sub">firmware</div>
+        </div>
+        <div class="flow-arrow-h">→</div>
+        <div class="flow-node hl">
+          <div class="node-label">GRUB</div>
+          <div class="node-sub">/boot/grub/</div>
+        </div>
+        <div class="flow-arrow-h">→</div>
+        <div class="flow-node">
+          <div class="node-label">Kernel</div>
+          <div class="node-sub">/boot/vmlinuz</div>
+        </div>
+        <div class="flow-arrow-h">→</div>
+        <div class="flow-node">
+          <div class="node-label">initramfs</div>
+          <div class="node-sub">dracut</div>
+        </div>
+      </div>
+      <div class="note info">
+        <span class="note-icon">ℹ</span>
+        <span>GRUB reads its config from <code>/boot/grub/grub.cfg</code> each boot. Kernel parameters can be edited interactively at the GRUB menu — no rebuild required. Kernels install to <strong>/boot</strong>.</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-label">Installation Steps</div>
+
+  <!-- STEP 1 -->
+  <div class="step open">
+    <div class="step-header" onclick="toggleStep(this)">
+      <div class="step-num">STEP 01</div>
+      <div class="step-title">Find your disk and partition info <span class="step-tag-sm">// required</span></div>
+      <div class="chevron">▼</div>
+    </div>
+    <div class="step-body">
+      <div class="note warn">
+        <span class="note-icon">⚠</span>
+        <span>Run these first. Note your <strong>root partition UUID</strong> and your <strong>EFI partition</strong> (the small ~512MB partition, usually <code>/dev/sda1</code> or <code>/dev/nvme0n1p1</code>).</span>
+      </div>
+      <div class="code-block">
+        <div class="code-label"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <div class="code-content"><span class="cmd">blkid</span></div>
+      </div>
+      <div class="code-block">
+        <div class="code-label"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <div class="code-content"><span class="cmd">lsblk</span></div>
+      </div>
+      <div class="note info">
+        <span class="note-icon">ℹ</span>
+        <span>Example output from blkid: <code>/dev/sda3: UUID="2122cd72-94d7-4dcc-821e-3705926deecc" TYPE="ext4"</code> — the long string after UUID= is what you need.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 2 -->
+  <div class="step">
+    <div class="step-header" onclick="toggleStep(this)">
+      <div class="step-num">STEP 02</div>
+      <div class="step-title">Install linux-firmware and microcode <span class="step-tag-sm">// AMD</span></div>
+      <div class="chevron">▼</div>
+    </div>
+    <div class="step-body">
+      <div class="note success">
+        <span class="note-icon">✓</span>
+        <span>AMD microcode is bundled inside <code>linux-firmware</code> — no separate package needed unlike Intel.</span>
+      </div>
+      <div class="code-block">
+        <div class="code-label"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <div class="code-content"><span class="cmd">emerge</span> <span class="flag">--ask</span> sys-kernel/linux-firmware</div>
+      </div>
+      <div class="note info">
+        <span class="note-icon">ℹ</span>
+        <span>If prompted about licenses, accept them. Most wireless cards and GPUs also need firmware from this package.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 3 -->
+  <div class="step">
+    <div class="step-header" onclick="toggleStep(this)">
+      <div class="step-num">STEP 03</div>
+      <div class="step-title">Set USE flags for installkernel <span class="step-tag-sm">// grub + dracut</span></div>
+      <div class="chevron">▼</div>
+    </div>
+    <div class="step-body">
+      <div class="file-block">
+        <div class="file-label">/etc/portage/package.use/installkernel</div>
+        <div class="file-content">sys-kernel/installkernel grub dracut</div>
+      </div>
+      <div class="code-block">
+        <div class="code-label"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <div class="code-content"><span class="cmd">mkdir</span> <span class="flag">-p</span> /etc/portage/package.use
+
+<span class="cmd">echo</span> <span class="str">'sys-kernel/installkernel grub dracut'</span> > /etc/portage/package.use/installkernel</div>
+      </div>
+      <div class="note info">
+        <span class="note-icon">ℹ</span>
+        <span>The <code>grub</code> flag makes installkernel automatically run <code>grub-mkconfig</code> after each kernel install. The <code>dracut</code> flag auto-generates an initramfs.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 4 -->
+  <div class="step">
+    <div class="step-header" onclick="toggleStep(this)">
+      <div class="step-num">STEP 04</div>
+      <div class="step-title">Emerge installkernel <span class="step-tag-sm">// portage</span></div>
+      <div class="chevron">▼</div>
+    </div>
+    <div class="step-body">
+      <div class="code-block">
+        <div class="code-label"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <div class="code-content"><span class="cmd">emerge</span> <span class="flag">--ask</span> sys-kernel/installkernel</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 5 -->
+  <div class="step">
+    <div class="step-header" onclick="toggleStep(this)">
+      <div class="step-num">STEP 05</div>
+      <div class="step-title">Configure dracut with root UUID <span class="step-tag-sm">// ⚠ replace UUID</span></div>
+      <div class="chevron">▼</div>
+    </div>
+    <div class="step-body">
+      <div class="note danger">
+        <span class="note-icon">⚠</span>
+        <span>Replace <strong>YOUR-ROOT-UUID-HERE</strong> with your actual root partition UUID from Step 1. This is required — installkernel will fail in a chroot without it.</span>
+      </div>
+      <div class="code-block">
+        <div class="code-label"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <div class="code-content"><span class="cmd">mkdir</span> <span class="flag">-p</span> /etc/dracut.conf.d</div>
+      </div>
+      <div class="file-block">
+        <div class="file-label">/etc/dracut.conf.d/00-installkernel.conf — note the leading and trailing spaces inside the quotes</div>
+        <div class="file-content">kernel_cmdline=" root=UUID=YOUR-ROOT-UUID-HERE rw "</div>
+      </div>
+      <div class="code-block">
+        <div class="code-label"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <div class="code-content"><span class="cmd">echo</span> <span class="str">'kernel_cmdline=" root=UUID=YOUR-ROOT-UUID-HERE rw "'</span> > /etc/dracut.conf.d/00-installkernel.conf</div>
+      </div>
+      <p style="font-size:13px;color:var(--muted);font-family:'IBM Plex Mono',monospace;">Verify it looks correct:</p>
+      <div class="code-block">
+        <div class="code-label"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <div class="code-content"><span class="cmd">cat</span> /etc/dracut.conf.d/00-installkernel.conf</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 6 -->
+  <div class="step">
+    <div class="step-header" onclick="toggleStep(this)">
+      <div class="step-num">STEP 06</div>
+      <div class="step-title">Install the kernel <span class="step-tag-sm">// dist-kernel</span></div>
+      <div class="chevron">▼</div>
+    </div>
+    <div class="step-body">
+      <div class="note success">
+        <span class="note-icon">✓</span>
+        <span>This installs the kernel to <code>/boot</code>, generates an initramfs, and calls installkernel automatically. Future upgrades are handled by the package manager.</span>
+      </div>
+      <div class="code-block">
+        <div class="code-label"><span class="lang">bash — precompiled (fastest)</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <div class="code-content"><span class="cmd">emerge</span> <span class="flag">--ask</span> sys-kernel/gentoo-kernel-bin</div>
+      </div>
+      <div class="note info">
+        <span class="note-icon">ℹ</span>
+        <span>Prefer compiling from source? Use <code>sys-kernel/gentoo-kernel</code> instead. Takes longer but allows custom config.</span>
+      </div>
+      <div class="code-block">
+        <div class="code-label"><span class="lang">bash — compiled from source (optional)</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <div class="code-content"><span class="cmd">emerge</span> <span class="flag">--ask</span> sys-kernel/gentoo-kernel</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 7 -->
+  <div class="step">
+    <div class="step-header" onclick="toggleStep(this)">
+      <div class="step-num">STEP 07</div>
+      <div class="step-title">Install and configure GRUB <span class="step-tag-sm">// ⚠ replace partition</span></div>
+      <div class="chevron">▼</div>
+    </div>
+    <div class="step-body">
+      <div class="code-block">
+        <div class="code-label"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <div class="code-content"><span class="cmd">emerge</span> <span class="flag">--ask</span> sys-boot/grub</div>
+      </div>
+      <div class="note warn">
+        <span class="note-icon">⚠</span>
+        <span>Make sure your EFI partition is mounted at <code>/efi</code> or <code>/boot/efi</code> before running the next command. Check with <code>mount | grep efi</code>.</span>
+      </div>
+      <div class="code-block">
+        <div class="code-label"><span class="lang">bash — mount EFI partition if not already mounted</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <div class="code-content"><span class="cmd">mount</span> | <span class="cmd">grep</span> efi</div>
+      </div>
+      <div class="note danger">
+        <span class="note-icon">⚠</span>
+        <span>Replace <strong>/dev/sda</strong> below with your actual disk (not partition — no number at the end). Check with <code>lsblk</code> from Step 1. For NVMe it would be <code>/dev/nvme0n1</code>.</span>
+      </div>
+      <div class="code-block">
+        <div class="code-label"><span class="lang">bash — install GRUB to EFI</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <div class="code-content"><span class="cmd">grub-install</span> <span class="flag">--target=</span>x86_64-efi <span class="flag">--efi-directory=</span>/efi <span class="flag">--bootloader-id=</span>Gentoo</div>
+      </div>
+      <div class="note info">
+        <span class="note-icon">ℹ</span>
+        <span>If your EFI partition is mounted at <code>/boot/efi</code> instead, change <code>--efi-directory=/efi</code> to <code>--efi-directory=/boot/efi</code>.</span>
+      </div>
+      <p style="font-size:13px;color:var(--muted);font-family:'IBM Plex Mono',monospace;margin-top:4px;">Then generate the GRUB config:</p>
+      <div class="code-block">
+        <div class="code-label"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <div class="code-content"><span class="cmd">grub-mkconfig</span> <span class="flag">-o</span> /boot/grub/grub.cfg</div>
+      </div>
+      <div class="note success">
+        <span class="note-icon">✓</span>
+        <span>You should see output mentioning <code>Found linux image</code> and <code>Found initrd image</code>. If so, GRUB has detected your kernel successfully.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 8 -->
+  <div class="step">
+    <div class="step-header" onclick="toggleStep(this)">
+      <div class="step-num">STEP 08</div>
+      <div class="step-title">Set dist-kernel USE flag <span class="step-tag-sm">// future upgrades</span></div>
+      <div class="chevron">▼</div>
+    </div>
+    <div class="step-body">
+      <div class="note success">
+        <span class="note-icon">✓</span>
+        <span>This ensures external kernel modules (AMD GPU drivers, ZFS, etc.) and the initramfs are automatically rebuilt on kernel upgrades. GRUB config is also regenerated automatically.</span>
+      </div>
+      <div class="code-block">
+        <div class="code-label"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <div class="code-content"><span class="cmd">echo</span> <span class="str">'USE="dist-kernel"'</span> >> /etc/portage/make.conf</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 9 -->
+  <div class="step">
+    <div class="step-header" onclick="toggleStep(this)">
+      <div class="step-num">STEP 09</div>
+      <div class="step-title">Verify and reboot <span class="step-tag-sm">// final check</span></div>
+      <div class="chevron">▼</div>
+    </div>
+    <div class="step-body">
+      <p style="font-size:13px;color:var(--muted);font-family:'IBM Plex Mono',monospace;">Confirm kernel and initramfs are in /boot:</p>
+      <div class="code-block">
+        <div class="code-label"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <div class="code-content"><span class="cmd">ls</span> /boot/</div>
+      </div>
+      <p style="font-size:13px;color:var(--muted);font-family:'IBM Plex Mono',monospace;margin-top:4px;">Confirm GRUB config was generated:</p>
+      <div class="code-block">
+        <div class="code-label"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <div class="code-content"><span class="cmd">cat</span> /boot/grub/grub.cfg | <span class="cmd">grep</span> menuentry</div>
+      </div>
+      <div class="note success">
+        <span class="note-icon">✓</span>
+        <span>You should see at least one <code>menuentry</code> line. You're ready to reboot into your new Gentoo system.</span>
+      </div>
+      <div class="code-block">
+        <div class="code-label"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <div class="code-content"><span class="cmd">reboot</span></div>
+      </div>
+      <div class="note info">
+        <span class="note-icon">ℹ</span>
+        <span>At the GRUB menu you can press <strong>E</strong> to edit kernel parameters on the fly — handy for troubleshooting without rebuilding anything.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- CHECKLIST -->
+  <div class="section-label">Progress Checklist</div>
+
+  <div class="progress-wrap">
+    <div class="progress-label">
+      <span>COMPLETION</span>
+      <span id="progress-text">0 / 9</span>
+    </div>
+    <div class="progress-track">
+      <div class="progress-fill" id="progress-fill" style="width:0%"></div>
+    </div>
+  </div>
+
+  <div class="checklist" id="checklist">
+    <div class="check-item" onclick="toggleCheck(this)">
+      <div class="check-box"></div>
+      <span class="check-text">Root UUID and EFI partition identified with blkid / lsblk</span>
+    </div>
+    <div class="check-item" onclick="toggleCheck(this)">
+      <div class="check-box"></div>
+      <span class="check-text">sys-kernel/linux-firmware emerged (AMD microcode included)</span>
+    </div>
+    <div class="check-item" onclick="toggleCheck(this)">
+      <div class="check-box"></div>
+      <span class="check-text">USE flags set: grub dracut on installkernel</span>
+    </div>
+    <div class="check-item" onclick="toggleCheck(this)">
+      <div class="check-box"></div>
+      <span class="check-text">sys-kernel/installkernel emerged</span>
+    </div>
+    <div class="check-item" onclick="toggleCheck(this)">
+      <div class="check-box"></div>
+      <span class="check-text">dracut config created with correct root UUID</span>
+    </div>
+    <div class="check-item" onclick="toggleCheck(this)">
+      <div class="check-box"></div>
+      <span class="check-text">Kernel installed (gentoo-kernel-bin or gentoo-kernel)</span>
+    </div>
+    <div class="check-item" onclick="toggleCheck(this)">
+      <div class="check-box"></div>
+      <span class="check-text">GRUB installed with grub-install --target=x86_64-efi</span>
+    </div>
+    <div class="check-item" onclick="toggleCheck(this)">
+      <div class="check-box"></div>
+      <span class="check-text">grub-mkconfig -o /boot/grub/grub.cfg run successfully</span>
+    </div>
+    <div class="check-item" onclick="toggleCheck(this)">
+      <div class="check-box"></div>
+      <span class="check-text">dist-kernel USE flag set in make.conf</span>
+    </div>
+  </div>
+
+  <footer>
+    <span><strong>Gentoo</strong> AMD64 Handbook — GRUB Edition</span>
+    <span>OpenRC · AMD · UEFI · GRUB2</span>
+  </footer>
+
+</div>
+
+<script>
+  function toggleStep(header) {
+    const step = header.parentElement;
+    step.classList.toggle('open');
+  }
+
+  function copyCode(btn) {
+    const content = btn.closest('.code-block').querySelector('.code-content');
+    navigator.clipboard.writeText(content.innerText).then(() => {
+      btn.textContent = 'COPIED!';
+      btn.classList.add('copied');
+      setTimeout(() => {
+        btn.textContent = 'COPY';
+        btn.classList.remove('copied');
+      }, 2000);
+    });
+  }
+
+  function toggleCheck(item) {
+    item.classList.toggle('done');
+    if (item.querySelector('.check-box').textContent === '✓') {
+      item.querySelector('.check-box').textContent = '';
+    } else {
+      item.querySelector('.check-box').textContent = '✓';
+    }
+    updateProgress();
+  }
+
+  function updateProgress() {
+    const items = document.querySelectorAll('.check-item');
+    const done = document.querySelectorAll('.check-item.done').length;
+    const pct = Math.round((done / items.length) * 100);
+    document.getElementById('progress-fill').style.width = pct + '%';
+    document.getElementById('progress-text').textContent = `${done} / ${items.length}`;
+  }
+</script>
+</body>
+</html>
