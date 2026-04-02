@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gentoo UKI Setup — OpenRC + AMD</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0f14;
+    --surface: #13161d;
+    --surface2: #1a1e28;
+    --border: #252a38;
+    --accent: #a78bfa;
+    --accent2: #38bdf8;
+    --accent3: #34d399;
+    --warn: #fb923c;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --code-bg: #0a0c10;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    line-height: 1.7;
+  }
+
+  /* Animated background grid */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(167,139,250,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(167,139,250,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 60px 24px 100px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Header */
+  header {
+    margin-bottom: 56px;
+    padding-bottom: 32px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(167,139,250,0.1);
+    border: 1px solid rgba(167,139,250,0.3);
+    color: var(--accent);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 4px;
+    margin-bottom: 20px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .badge::before { content: '◆'; font-size: 8px; }
+
+  h1 {
+    font-size: clamp(28px, 5vw, 44px);
+    font-weight: 800;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    margin-bottom: 12px;
+  }
+
+  h1 span.hl { color: var(--accent); }
+  h1 span.hl2 { color: var(--accent2); }
+
+  .subtitle {
+    color: var(--muted);
+    font-size: 15px;
+    font-family: 'JetBrains Mono', monospace;
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-top: 16px;
+  }
+
+  .subtitle span {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent3); display: inline-block; }
+  .dot.orange { background: var(--warn); }
+  .dot.blue { background: var(--accent2); }
+
+  /* Steps */
+  .step {
+    margin-bottom: 40px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    background: var(--surface);
+    transition: border-color 0.2s;
+    animation: fadeUp 0.5s ease both;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .step:nth-child(1) { animation-delay: 0.05s; }
+  .step:nth-child(2) { animation-delay: 0.1s; }
+  .step:nth-child(3) { animation-delay: 0.15s; }
+  .step:nth-child(4) { animation-delay: 0.2s; }
+  .step:nth-child(5) { animation-delay: 0.25s; }
+  .step:nth-child(6) { animation-delay: 0.3s; }
+  .step:nth-child(7) { animation-delay: 0.35s; }
+  .step:nth-child(8) { animation-delay: 0.4s; }
+  .step:nth-child(9) { animation-delay: 0.45s; }
+
+  .step:hover { border-color: rgba(167,139,250,0.35); }
+
+  .step-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 18px 22px;
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .step-num {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    background: rgba(167,139,250,0.15);
+    border: 1px solid rgba(167,139,250,0.4);
+    color: var(--accent);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .step-title {
+    font-size: 16px;
+    font-weight: 700;
+    flex: 1;
+  }
+
+  .step-title .step-tag {
+    font-size: 11px;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--muted);
+    font-weight: 400;
+    margin-left: 8px;
+  }
+
+  .chevron {
+    color: var(--muted);
+    font-size: 12px;
+    transition: transform 0.25s;
+  }
+
+  .step.open .chevron { transform: rotate(180deg); }
+
+  .step-body {
+    padding: 20px 22px;
+    display: none;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .step.open .step-body { display: flex; }
+
+  /* Note / tip boxes */
+  .note {
+    display: flex;
+    gap: 10px;
+    padding: 12px 14px;
+    border-radius: 8px;
+    font-size: 13.5px;
+    line-height: 1.6;
+  }
+
+  .note.info {
+    background: rgba(56,189,248,0.07);
+    border: 1px solid rgba(56,189,248,0.2);
+    color: #93c5fd;
+  }
+
+  .note.warn {
+    background: rgba(251,146,60,0.07);
+    border: 1px solid rgba(251,146,60,0.25);
+    color: #fdba74;
+  }
+
+  .note.success {
+    background: rgba(52,211,153,0.07);
+    border: 1px solid rgba(52,211,153,0.2);
+    color: #6ee7b7;
+  }
+
+  .note-icon { font-size: 15px; flex-shrink: 0; margin-top: 1px; }
+
+  /* Code blocks */
+  .code-block {
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+  }
+
+  .code-label {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 14px;
+    background: #111418;
+    border-bottom: 1px solid var(--border);
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+  }
+
+  .code-label .lang { color: var(--accent); text-transform: uppercase; font-weight: 700; }
+
+  .copy-btn {
+    background: rgba(167,139,250,0.1);
+    border: 1px solid rgba(167,139,250,0.25);
+    color: var(--accent);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    padding: 3px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    letter-spacing: 0.05em;
+  }
+
+  .copy-btn:hover { background: rgba(167,139,250,0.2); }
+  .copy-btn.copied { background: rgba(52,211,153,0.15); border-color: rgba(52,211,153,0.3); color: var(--accent3); }
+
+  .code-content {
+    background: var(--code-bg);
+    padding: 16px;
+    overflow-x: auto;
+    line-height: 1.8;
+    white-space: pre;
+    color: #c9d1d9;
+  }
+
+  .code-content .cmd { color: #79c0ff; }
+  .code-content .flag { color: #ffb347; }
+  .code-content .str { color: #a5d6ff; }
+  .code-content .cmt { color: #484f58; font-style: italic; }
+  .code-content .path { color: var(--accent3); }
+  .code-content .kw { color: var(--accent); }
+
+  /* File label blocks */
+  .file-block {
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid rgba(52,211,153,0.2);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+  }
+
+  .file-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    background: rgba(52,211,153,0.06);
+    border-bottom: 1px solid rgba(52,211,153,0.15);
+    font-size: 11px;
+    color: var(--accent3);
+    letter-spacing: 0.04em;
+  }
+
+  .file-label::before { content: '📄'; font-size: 12px; }
+
+  .file-content {
+    background: var(--code-bg);
+    padding: 14px 16px;
+    overflow-x: auto;
+    line-height: 1.8;
+    white-space: pre;
+    color: #c9d1d9;
+  }
+
+  /* Checklist */
+  .checklist {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .check-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    border-radius: 8px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+    font-size: 14px;
+  }
+
+  .check-item:hover { border-color: var(--accent); }
+  .check-item.done { border-color: rgba(52,211,153,0.35); background: rgba(52,211,153,0.05); }
+  .check-item.done .check-box { background: var(--accent3); border-color: var(--accent3); }
+  .check-item.done .check-box::after { content: '✓'; color: #0d0f14; font-size: 11px; font-weight: 700; }
+  .check-item.done .check-text { color: var(--muted); text-decoration: line-through; }
+
+  .check-box {
+    width: 20px;
+    height: 20px;
+    border-radius: 5px;
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: background 0.15s, border-color 0.15s;
+  }
+
+  /* Flow diagram */
+  .flow {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    padding: 16px;
+    background: var(--code-bg);
+    border-radius: 8px;
+    border: 1px solid var(--border);
+  }
+
+  .flow-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 0;
+  }
+
+  .flow-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    flex-shrink: 0;
+  }
+
+  .flow-arrow {
+    color: var(--muted);
+    padding: 2px 0 2px 14px;
+    font-size: 16px;
+  }
+
+  .flow-item .label { color: var(--text); }
+  .flow-item .sublabel { color: var(--muted); font-size: 11px; margin-left: 6px; }
+
+  /* Progress bar */
+  .progress-bar-wrap {
+    margin-top: 8px;
+  }
+
+  .progress-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+    margin-bottom: 6px;
+  }
+
+  .progress-track {
+    height: 4px;
+    background: var(--surface2);
+    border-radius: 99px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    border-radius: 99px;
+    transition: width 0.4s ease;
+  }
+
+  /* Footer */
+  footer {
+    margin-top: 64px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+    text-align: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <div class="badge">Gentoo Linux Installation Guide</div>
+    <h1>Unified Kernel Image<br><span class="hl">OpenRC</span> + <span class="hl2">AMD</span> Setup</h1>
+    <div class="subtitle">
+      <span><span class="dot"></span> EFI Stub Boot</span>
+      <span><span class="dot blue"></span> No GRUB required</span>
+      <span><span class="dot orange"></span> Copy-paste commands</span>
+    </div>
+  </header>
+
+  <!-- HOW IT WORKS -->
+  <div class="step open" style="margin-bottom:40px;">
+    <div class="step-header" onclick="toggleStep(this)">
+      <div class="step-num">◆</div>
+      <div class="step-title">How it all fits together <span class="step-tag">overview</span></div>
+      <div class="chevron">▼</div>
+    </div>
+    <div class="step-body">
+      <div class="flow">
+        <div class="flow-item">
+          <div class="flow-icon" style="background:rgba(167,139,250,0.1);color:var(--accent)">🔧</div>
+          <span class="label">dracut</span>
+          <span class="sublabel">→ builds initramfs</span>
+        </div>
+        <div class="flow-arrow">↓</div>
+        <div class="flow-item">
+          <div class="flow-icon" style="background:rgba(56,189,248,0.1);color:var(--accent2)">🔩</div>
+          <span class="label">systemd-utils (stub loader)</span>
+          <span class="sublabel">→ bundles kernel + initramfs + cmdline</span>
+        </div>
+        <div class="flow-arrow">↓</div>
+        <div class="flow-item">
+          <div class="flow-icon" style="background:rgba(52,211,153,0.1);color:var(--accent3)">📦</div>
+          <span class="label">single .efi file</span>
+          <span class="sublabel">→ placed in /efi/EFI/Gentoo/</span>
+        </div>
+        <div class="flow-arrow">↓</div>
+        <div class="flow-item">
+          <div class="flow-icon" style="background:rgba(251,146,60,0.1);color:var(--warn)">⚡</div>
+          <span class="label">UEFI boots it directly</span>
+          <span class="sublabel">→ no GRUB, no secondary bootloader</span>
+        </div>
+      </div>
+      <div class="note info">
+        <span class="note-icon">ℹ</span>
+        <span>The kernel command line (root UUID etc.) is <strong>baked into</strong> the .efi file — you don't need to pass it at boot time.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 1 -->
+  <div class="step open">
+    <div class="step-header" onclick="toggleStep(this)">
+      <div class="step-num">01</div>
+      <div class="step-title">Find your UUIDs and disk info <span class="step-tag">required info</span></div>
+      <div class="chevron">▼</div>
+    </div>
+    <div class="step-body">
+      <div class="note warn">
+        <span class="note-icon">⚠</span>
+        <span>Run these first and note your <strong>root partition UUID</strong> and <strong>EFI partition</strong> (the small ~512MB one). You'll need them in Step 5.</span>
+      </div>
+      <div class="code-block">
+        <div class="code-label"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <div class="code-content"><span class="cmd">blkid</span></div>
+      </div>
+      <div class="code-block">
+        <div class="code-label"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <div class="code-content"><span class="cmd">lsblk</span></div>
+      </div>
+      <div class="note info">
+        <span class="note-icon">ℹ</span>
+        <span>From <code>blkid</code>: note the UUID next to your root partition (e.g. <code>/dev/sda3</code>). From <code>lsblk</code>: note which partition is your EFI (e.g. <code>/dev/sda1</code>).</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 2 -->
+  <div class="step">
+    <div class="step-header" onclick="toggleStep(this)">
+      <div class="step-num">02</div>
+      <div class="step-title">Set USE flags <span class="step-tag">/etc/portage</span></div>
+      <div class="chevron">▼</div>
+    </div>
+    <div class="step-body">
+      <div class="code-block">
+        <div class="code-label"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <div class="code-content"><span class="cmd">mkdir</span> <span class="flag">-p</span> /etc/portage/package.use
+
+<span class="cmd">echo</span> <span class="str">'sys-apps/systemd-utils boot kernel-install'</span> >> /etc/portage/package.use/uki
+
+<span class="cmd">echo</span> <span class="str">'sys-kernel/installkernel dracut uki'</span> >> /etc/portage/package.use/uki</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 3 -->
+  <div class="step">
+    <div class="step-header" onclick="toggleStep(this)">
+      <div class="step-num">03</div>
+      <div class="step-title">Emerge required packages <span class="step-tag">portage</span></div>
+      <div class="chevron">▼</div>
+    </div>
+    <div class="step-body">
+      <div class="code-block">
+        <div class="code-label"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <div class="code-content"><span class="cmd">emerge</span> <span class="flag">--ask</span> sys-apps/systemd-utils</div>
+      </div>
+      <div class="code-block">
+        <div class="code-label"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <div class="code-content"><span class="cmd">emerge</span> <span class="flag">--ask</span> sys-kernel/installkernel</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 4 -->
+  <div class="step">
+    <div class="step-header" onclick="toggleStep(this)">
+      <div class="step-num">04</div>
+      <div class="step-title">Create EFI directory <span class="step-tag">/efi</span></div>
+      <div class="chevron">▼</div>
+    </div>
+    <div class="step-body">
+      <div class="code-block">
+        <div class="code-label"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <div class="code-content"><span class="cmd">mkdir</span> <span class="flag">-p</span> /efi/EFI/Gentoo</div>
+      </div>
+      <div class="note info">
+        <span class="note-icon">ℹ</span>
+        <span>EFI stub requires kernels installed to <code>/efi</code>, not <code>/boot</code>. Make sure your EFI partition is mounted at <code>/efi</code>.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 5 -->
+  <div class="step">
+    <div class="step-header" onclick="toggleStep(this)">
+      <div class="step-num">05</div>
+      <div class="step-title">Create dracut configs <span class="step-tag">⚠ replace UUID</span></div>
+      <div class="chevron">▼</div>
+    </div>
+    <div class="step-body">
+      <div class="note warn">
+        <span class="note-icon">⚠</span>
+        <span>Replace <strong>YOUR-ROOT-UUID-HERE</strong> with your actual UUID from Step 1 in <em>both</em> commands below.</span>
+      </div>
+      <div class="code-block">
+        <div class="code-label"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <div class="code-content"><span class="cmd">mkdir</span> <span class="flag">-p</span> /etc/dracut.conf.d</div>
+      </div>
+      <div class="file-block">
+        <div class="file-label">/etc/dracut.conf.d/00-installkernel.conf — note the leading and trailing spaces inside the quotes</div>
+        <div class="file-content">kernel_cmdline=" root=UUID=YOUR-ROOT-UUID-HERE rw "</div>
+      </div>
+      <div class="code-block">
+        <div class="code-label"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <div class="code-content"><span class="cmd">echo</span> <span class="str">'kernel_cmdline=" root=UUID=YOUR-ROOT-UUID-HERE rw "'</span> > /etc/dracut.conf.d/00-installkernel.conf</div>
+      </div>
+      <div class="file-block">
+        <div class="file-label">/etc/dracut.conf.d/uki.conf</div>
+        <div class="file-content">uefi="yes"
+kernel_cmdline="root=UUID=YOUR-ROOT-UUID-HERE rw quiet"</div>
+      </div>
+      <div class="code-block">
+        <div class="code-label"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <div class="code-content"><span class="cmd">printf</span> <span class="str">'uefi="yes"\nkernel_cmdline="root=UUID=YOUR-ROOT-UUID-HERE rw quiet"\n'</span> > /etc/dracut.conf.d/uki.conf</div>
+      </div>
+      <p style="font-size:13px;color:var(--muted)">Verify both files:</p>
+      <div class="code-block">
+        <div class="code-label"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <div class="code-content"><span class="cmd">cat</span> /etc/dracut.conf.d/00-installkernel.conf
+<span class="cmd">cat</span> /etc/dracut.conf.d/uki.conf</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 6 -->
+  <div class="step">
+    <div class="step-header" onclick="toggleStep(this)">
+      <div class="step-num">06</div>
+      <div class="step-title">Install the kernel <span class="step-tag">portage</span></div>
+      <div class="chevron">▼</div>
+    </div>
+    <div class="step-body">
+      <div class="note success">
+        <span class="note-icon">✓</span>
+        <span>This will automatically build the kernel, generate an initramfs via dracut, bundle everything into a <code>.efi</code> UKI, and place it in <code>/efi/EFI/Gentoo/</code>.</span>
+      </div>
+      <div class="code-block">
+        <div class="code-label"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <div class="code-content"><span class="cmd">emerge</span> <span class="flag">--ask</span> sys-kernel/gentoo-kernel-bin</div>
+      </div>
+      <div class="note info">
+        <span class="note-icon">ℹ</span>
+        <span>Prefer compiling from source? Use <code>sys-kernel/gentoo-kernel</code> instead.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 7 -->
+  <div class="step">
+    <div class="step-header" onclick="toggleStep(this)">
+      <div class="step-num">07</div>
+      <div class="step-title">Create UEFI boot entry <span class="step-tag">⚠ replace disk/part</span></div>
+      <div class="chevron">▼</div>
+    </div>
+    <div class="step-body">
+      <div class="code-block">
+        <div class="code-label"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <div class="code-content"><span class="cmd">emerge</span> <span class="flag">--ask</span> sys-fs/efibootmgr</div>
+      </div>
+      <div class="note warn">
+        <span class="note-icon">⚠</span>
+        <span>Replace <strong>/dev/sda</strong> and <strong>1</strong> with your actual disk and EFI partition number from Step 1. Example: if EFI is <code>/dev/nvme0n1p1</code> then use <code>--disk /dev/nvme0n1 --part 1</code>.</span>
+      </div>
+      <div class="code-block">
+        <div class="code-label"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <div class="code-content"><span class="cmd">efibootmgr</span> <span class="flag">--create</span> \
+  <span class="flag">--disk</span> /dev/sda \
+  <span class="flag">--part</span> 1 \
+  <span class="flag">--label</span> <span class="str">"Gentoo"</span> \
+  <span class="flag">--loader</span> <span class="str">"EFI\Gentoo\gentoo.efi"</span></div>
+      </div>
+      <p style="font-size:13px;color:var(--muted)">Verify the entry was created:</p>
+      <div class="code-block">
+        <div class="code-label"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <div class="code-content"><span class="cmd">efibootmgr</span> <span class="flag">-v</span></div>
+      </div>
+      <div class="note info">
+        <span class="note-icon">ℹ</span>
+        <span>No kernel cmdline is passed here — it's already <strong>baked into the UKI</strong>.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 8 -->
+  <div class="step">
+    <div class="step-header" onclick="toggleStep(this)">
+      <div class="step-num">08</div>
+      <div class="step-title">Set dist-kernel USE flag <span class="step-tag">future upgrades</span></div>
+      <div class="chevron">▼</div>
+    </div>
+    <div class="step-body">
+      <div class="note success">
+        <span class="note-icon">✓</span>
+        <span>This ensures external modules (AMD GPU drivers, ZFS, etc.) and the UKI are automatically rebuilt when the kernel upgrades.</span>
+      </div>
+      <div class="code-block">
+        <div class="code-label"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <div class="code-content"><span class="cmd">echo</span> <span class="str">'USE="dist-kernel"'</span> >> /etc/portage/make.conf</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 9 -->
+  <div class="step">
+    <div class="step-header" onclick="toggleStep(this)">
+      <div class="step-num">09</div>
+      <div class="step-title">Verify and reboot <span class="step-tag">final</span></div>
+      <div class="chevron">▼</div>
+    </div>
+    <div class="step-body">
+      <p style="font-size:13px;color:var(--muted)">Check the UKI was placed in the EFI directory:</p>
+      <div class="code-block">
+        <div class="code-label"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <div class="code-content"><span class="cmd">ls</span> /efi/EFI/Gentoo/</div>
+      </div>
+      <div class="note success">
+        <span class="note-icon">✓</span>
+        <span>You should see a <code>.efi</code> file. If you do, you're ready to reboot!</span>
+      </div>
+      <div class="code-block">
+        <div class="code-label"><span class="lang">bash</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>
+        <div class="code-content"><span class="cmd">reboot</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CHECKLIST -->
+  <div style="margin-top:48px;">
+    <div style="font-size:13px;font-family:'JetBrains Mono',monospace;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:16px;">
+      ◆ Progress Checklist
+    </div>
+    <div class="progress-bar-wrap">
+      <div class="progress-label">
+        <span>Completion</span>
+        <span id="progress-text">0 / 8</span>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill" id="progress-fill" style="width:0%"></div>
+      </div>
+    </div>
+    <br>
+    <div class="checklist" id="checklist">
+      <div class="check-item" onclick="toggleCheck(this)">
+        <div class="check-box"></div>
+        <span class="check-text">USE flags set for systemd-utils and installkernel</span>
+      </div>
+      <div class="check-item" onclick="toggleCheck(this)">
+        <div class="check-box"></div>
+        <span class="check-text">sys-apps/systemd-utils and sys-kernel/installkernel emerged</span>
+      </div>
+      <div class="check-item" onclick="toggleCheck(this)">
+        <div class="check-box"></div>
+        <span class="check-text">/efi/EFI/Gentoo/ directory created</span>
+      </div>
+      <div class="check-item" onclick="toggleCheck(this)">
+        <div class="check-box"></div>
+        <span class="check-text">Root UUID found with blkid</span>
+      </div>
+      <div class="check-item" onclick="toggleCheck(this)">
+        <div class="check-box"></div>
+        <span class="check-text">Both dracut config files created with correct UUID</span>
+      </div>
+      <div class="check-item" onclick="toggleCheck(this)">
+        <div class="check-box"></div>
+        <span class="check-text">Kernel installed via emerge</span>
+      </div>
+      <div class="check-item" onclick="toggleCheck(this)">
+        <div class="check-box"></div>
+        <span class="check-text">efibootmgr entry created and verified</span>
+      </div>
+      <div class="check-item" onclick="toggleCheck(this)">
+        <div class="check-box"></div>
+        <span class="check-text">dist-kernel USE flag set in make.conf</span>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    Gentoo AMD64 Handbook — UKI / EFI Stub — OpenRC Edition
+  </footer>
+
+</div>
+
+<script>
+  function toggleStep(header) {
+    const step = header.parentElement;
+    step.classList.toggle('open');
+  }
+
+  function copyCode(btn) {
+    const content = btn.closest('.code-block').querySelector('.code-content');
+    const text = content.innerText;
+    navigator.clipboard.writeText(text).then(() => {
+      btn.textContent = 'COPIED!';
+      btn.classList.add('copied');
+      setTimeout(() => {
+        btn.textContent = 'COPY';
+        btn.classList.remove('copied');
+      }, 2000);
+    });
+  }
+
+  function toggleCheck(item) {
+    item.classList.toggle('done');
+    updateProgress();
+  }
+
+  function updateProgress() {
+    const items = document.querySelectorAll('.check-item');
+    const done = document.querySelectorAll('.check-item.done').length;
+    const pct = Math.round((done / items.length) * 100);
+    document.getElementById('progress-fill').style.width = pct + '%';
+    document.getElementById('progress-text').textContent = `${done} / ${items.length}`;
+  }
+</script>
+</body>
+</html>
