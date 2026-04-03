@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gentoo Kernel & Boot Setup Guide</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0f14;
+    --surface: #13161e;
+    --surface2: #1a1e2a;
+    --border: #252a38;
+    --accent: #7b5ea7;
+    --accent2: #5ea78a;
+    --warn: #c9813a;
+    --danger: #c95a5a;
+    --text: #d4d8e8;
+    --muted: #6b7294;
+    --bright: #eef0f8;
+    --code-bg: #0a0c10;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    font-size: 15px;
+    line-height: 1.7;
+    padding: 0 0 80px;
+  }
+
+  /* HEADER */
+  header {
+    background: linear-gradient(135deg, #0d0f14 0%, #171b28 60%, #1a1628 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 48px 40px 40px;
+    position: relative;
+    overflow: hidden;
+  }
+  header::before {
+    content: '';
+    position: absolute;
+    top: -60px; right: -60px;
+    width: 320px; height: 320px;
+    background: radial-gradient(circle, rgba(123,94,167,0.18) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  header::after {
+    content: 'GENTOO';
+    position: absolute;
+    bottom: -20px; right: 30px;
+    font-size: 120px;
+    font-weight: 800;
+    color: rgba(255,255,255,0.018);
+    letter-spacing: 10px;
+    pointer-events: none;
+    user-select: none;
+  }
+  .header-tag {
+    display: inline-block;
+    background: rgba(123,94,167,0.15);
+    border: 1px solid rgba(123,94,167,0.4);
+    color: #a58fd4;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 2px;
+    letter-spacing: 2px;
+    margin-bottom: 16px;
+    text-transform: uppercase;
+  }
+  h1 {
+    font-size: 36px;
+    font-weight: 800;
+    color: var(--bright);
+    letter-spacing: -0.5px;
+    line-height: 1.2;
+    max-width: 600px;
+  }
+  h1 span { color: #a58fd4; }
+  .header-sub {
+    margin-top: 12px;
+    color: var(--muted);
+    font-size: 14px;
+    max-width: 520px;
+  }
+
+  /* LAYOUT */
+  .container { max-width: 860px; margin: 0 auto; padding: 0 24px; }
+
+  /* PROGRESS BAR */
+  .progress-bar {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 40px;
+    display: flex;
+    gap: 0;
+    overflow-x: auto;
+  }
+  .progress-step {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 20px;
+    font-size: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--muted);
+    white-space: nowrap;
+    border-bottom: 2px solid transparent;
+    transition: color 0.2s;
+  }
+  .progress-step.active { color: #a58fd4; border-bottom-color: #7b5ea7; }
+  .progress-step .num {
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px;
+  }
+  .progress-step.active .num { background: rgba(123,94,167,0.3); border-color: #7b5ea7; color: #c4a8f0; }
+
+  /* SECTIONS */
+  .section {
+    margin-top: 36px;
+  }
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 20px;
+  }
+  .step-badge {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    color: #7b5ea7;
+    background: rgba(123,94,167,0.12);
+    border: 1px solid rgba(123,94,167,0.3);
+    padding: 4px 10px;
+    border-radius: 2px;
+    letter-spacing: 1px;
+    white-space: nowrap;
+  }
+  .step-badge.green { color: var(--accent2); background: rgba(94,167,138,0.1); border-color: rgba(94,167,138,0.3); }
+  .step-badge.orange { color: var(--warn); background: rgba(201,129,58,0.1); border-color: rgba(201,129,58,0.3); }
+  h2 {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--bright);
+    letter-spacing: -0.3px;
+  }
+
+  /* CALLOUTS */
+  .callout {
+    border-left: 3px solid var(--warn);
+    background: rgba(201,129,58,0.07);
+    padding: 14px 18px;
+    border-radius: 0 4px 4px 0;
+    margin-bottom: 20px;
+    font-size: 13.5px;
+    color: #c9a46a;
+  }
+  .callout.info {
+    border-color: var(--accent);
+    background: rgba(123,94,167,0.07);
+    color: #a58fd4;
+  }
+  .callout.success {
+    border-color: var(--accent2);
+    background: rgba(94,167,138,0.07);
+    color: #7ec9a8;
+  }
+  .callout.danger {
+    border-color: var(--danger);
+    background: rgba(201,90,90,0.07);
+    color: #d4807e;
+  }
+  .callout strong { color: var(--bright); }
+
+  /* CODE BLOCKS */
+  .cmd-block {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    margin-bottom: 16px;
+    overflow: hidden;
+  }
+  .cmd-label {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 16px;
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.5px;
+  }
+  .cmd-label .dot-row { display: flex; gap: 5px; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; }
+  .dot.r { background: #c95a5a; }
+  .dot.y { background: #c9a43a; }
+  .dot.g { background: #5ea75e; }
+  .copy-btn {
+    background: rgba(123,94,167,0.2);
+    border: 1px solid rgba(123,94,167,0.35);
+    color: #a58fd4;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    padding: 3px 10px;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    letter-spacing: 0.5px;
+  }
+  .copy-btn:hover { background: rgba(123,94,167,0.4); color: #c4a8f0; }
+  .copy-btn.copied { background: rgba(94,167,138,0.2); border-color: rgba(94,167,138,0.4); color: #7ec9a8; }
+  pre {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    padding: 18px 20px;
+    overflow-x: auto;
+    line-height: 1.8;
+    color: #c8d0e8;
+  }
+  pre .comment { color: #4a5070; }
+  pre .cmd { color: #c8d0e8; }
+  pre .var { color: #c4a8f0; }
+  pre .str { color: #7ec9a8; }
+  pre .flag { color: #85b8d4; }
+  pre .prompt { color: #4a5070; user-select: none; }
+  pre .important { color: #f0c070; }
+
+  /* INLINE CODE */
+  code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12.5px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    padding: 1px 6px;
+    border-radius: 3px;
+    color: #c4a8f0;
+  }
+
+  /* DESCRIPTION TEXT */
+  .desc {
+    color: var(--muted);
+    font-size: 13.5px;
+    margin-bottom: 16px;
+    padding-left: 2px;
+  }
+
+  /* DIVIDER */
+  .divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 40px 0;
+  }
+
+  /* VARIABLE TABLE */
+  .var-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+    font-size: 13px;
+  }
+  .var-table th {
+    text-align: left;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 1px;
+    color: var(--muted);
+    padding: 8px 14px;
+    border-bottom: 1px solid var(--border);
+    text-transform: uppercase;
+  }
+  .var-table td {
+    padding: 10px 14px;
+    border-bottom: 1px solid rgba(37,42,56,0.6);
+    vertical-align: top;
+  }
+  .var-table tr:last-child td { border-bottom: none; }
+  .var-table .vname { font-family: 'JetBrains Mono', monospace; color: #c4a8f0; font-size: 12px; }
+  .var-table .vhow { color: var(--muted); font-size: 12.5px; }
+
+  /* FINAL SUCCESS */
+  .success-box {
+    background: linear-gradient(135deg, rgba(94,167,138,0.08), rgba(94,167,138,0.03));
+    border: 1px solid rgba(94,167,138,0.25);
+    border-radius: 8px;
+    padding: 28px 32px;
+    margin-top: 40px;
+    text-align: center;
+  }
+  .success-box h3 { color: var(--accent2); font-size: 22px; margin-bottom: 8px; }
+  .success-box p { color: var(--muted); font-size: 14px; }
+
+  /* SCROLL TO TOP */
+  .toc {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 18px 22px;
+    margin: 28px 0 0;
+    font-size: 13px;
+  }
+  .toc-title { font-weight: 700; color: var(--bright); margin-bottom: 10px; font-size: 12px; letter-spacing: 1px; text-transform: uppercase; font-family: 'JetBrains Mono', monospace; }
+  .toc ol { padding-left: 20px; }
+  .toc li { margin: 4px 0; }
+  .toc a { color: var(--muted); text-decoration: none; transition: color 0.15s; font-size: 13px; }
+  .toc a:hover { color: #a58fd4; }
+</style>
+</head>
+<body>
+
+<header>
+  <div style="max-width:860px;margin:0 auto;padding:0 16px;">
+    <div class="header-tag">POST @WORLD UPDATE</div>
+    <h1>Gentoo <span>Kernel & Boot</span><br>Setup Guide</h1>
+    <p class="header-sub">Source-built kernel, dracut initramfs, and EFI boot entry — copy-paste ready commands for a fresh install.</p>
+  </div>
+</header>
+
+<div class="progress-bar">
+  <div class="progress-step active"><div class="num">1</div> Portage Flags</div>
+  <div class="progress-step active"><div class="num">2</div> Emerge Kernel</div>
+  <div class="progress-step active"><div class="num">3</div> Configure Kernel</div>
+  <div class="progress-step active"><div class="num">4</div> Build &amp; Install</div>
+  <div class="progress-step active"><div class="num">5</div> Dracut Initramfs</div>
+  <div class="progress-step active"><div class="num">6</div> EFI Boot Entry</div>
+  <div class="progress-step active"><div class="num">7</div> fstab &amp; Reboot</div>
+</div>
+
+<div class="container">
+
+  <div class="toc">
+    <div class="toc-title">// Contents</div>
+    <ol>
+      <li><a href="#prereqs">Prerequisites — find your values first</a></li>
+      <li><a href="#portage">Portage USE flags &amp; license</a></li>
+      <li><a href="#emerge">Emerge the kernel sources</a></li>
+      <li><a href="#configure">Configure the kernel</a></li>
+      <li><a href="#build">Build &amp; install the kernel</a></li>
+      <li><a href="#initramfs">Generate initramfs with dracut</a></li>
+      <li><a href="#efi">Create the EFI boot entry</a></li>
+      <li><a href="#fstab">Generate fstab</a></li>
+      <li><a href="#reboot">Final checks &amp; reboot</a></li>
+    </ol>
+  </div>
+
+  <!-- ─── PREREQS ─── -->
+  <hr class="divider" id="prereqs">
+  <div class="section">
+    <div class="section-header">
+      <div class="step-badge orange">BEFORE YOU START</div>
+      <h2>Find Your Values First</h2>
+    </div>
+    <div class="callout">
+      <strong>Run these discovery commands first.</strong> You'll need the output to fill in the copy-paste commands below. Open a second terminal or write them down.
+    </div>
+
+    <p class="desc">Find your EFI partition, root UUID, and kernel version:</p>
+    <div class="cmd-block">
+      <div class="cmd-label">
+        <div class="dot-row"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div></div>
+        <span>discovery.sh</span>
+        <button class="copy-btn" onclick="copyBlock(this)">COPY</button>
+      </div>
+      <pre><span class="prompt"># </span><span class="comment"># 1. List all block devices — find your EFI and root partitions</span>
+<span class="cmd">lsblk -o NAME,SIZE,TYPE,FSTYPE,MOUNTPOINT,UUID</span>
+
+<span class="prompt"># </span><span class="comment"># 2. Get UUID for your root partition specifically (replace sdaX)</span>
+<span class="cmd">blkid /dev/sdaX</span>
+
+<span class="prompt"># </span><span class="comment"># 3. Check EFI partition number (usually partition 1 or 2)</span>
+<span class="cmd">fdisk -l | grep -i efi</span></pre>
+    </div>
+
+    <p class="desc">Write down these values — you'll substitute them below:</p>
+    <table class="var-table">
+      <tr><th>Variable</th><th>How to find it</th></tr>
+      <tr>
+        <td class="vname">ROOT_UUID</td>
+        <td class="vhow">From <code>blkid</code> output — the UUID of your <code>/</code> partition</td>
+      </tr>
+      <tr>
+        <td class="vname">EFI_DISK</td>
+        <td class="vhow">Parent disk of EFI partition, e.g. <code>/dev/sda</code> or <code>/dev/nvme0n1</code></td>
+      </tr>
+      <tr>
+        <td class="vname">EFI_PART_NUM</td>
+        <td class="vhow">Partition number of EFI partition — usually <code>1</code> or <code>2</code></td>
+      </tr>
+      <tr>
+        <td class="vname">KEYMAP</td>
+        <td class="vhow">Your keyboard layout, e.g. <code>us</code>, <code>de</code>, <code>uk</code></td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- ─── PORTAGE ─── -->
+  <hr class="divider" id="portage">
+  <div class="section">
+    <div class="section-header">
+      <div class="step-badge">STEP 01</div>
+      <h2>Portage USE Flags &amp; License</h2>
+    </div>
+    <p class="desc">Set the dracut USE flag on installkernel and accept the firmware license. These must be done before emerging the kernel.</p>
+
+    <div class="cmd-block">
+      <div class="cmd-label">
+        <div class="dot-row"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div></div>
+        <span>portage-flags.sh</span>
+        <button class="copy-btn" onclick="copyBlock(this)">COPY</button>
+      </div>
+      <pre><span class="prompt"># </span><span class="comment"># Enable dracut integration for installkernel</span>
+<span class="cmd">echo</span> <span class="str">"sys-kernel/installkernel dracut"</span> > /etc/portage/package.use/installkernel
+
+<span class="prompt"># </span><span class="comment"># Accept linux-firmware license (required for wireless/GPU firmware)</span>
+<span class="cmd">echo</span> <span class="str">"sys-kernel/linux-firmware linux-fw-redistributable no-source-code"</span> >> /etc/portage/package.license
+
+<span class="prompt"># </span><span class="comment"># Verify</span>
+<span class="cmd">cat</span> /etc/portage/package.use/installkernel
+<span class="cmd">cat</span> /etc/portage/package.license</pre>
+    </div>
+  </div>
+
+  <!-- ─── EMERGE ─── -->
+  <hr class="divider" id="emerge">
+  <div class="section">
+    <div class="section-header">
+      <div class="step-badge">STEP 02</div>
+      <h2>Emerge Kernel Sources &amp; Tools</h2>
+    </div>
+    <p class="desc">Install the kernel sources, dracut, zstd compression, efibootmgr, and linux-firmware in one go.</p>
+
+    <div class="cmd-block">
+      <div class="cmd-label">
+        <div class="dot-row"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div></div>
+        <span>emerge-kernel.sh</span>
+        <button class="copy-btn" onclick="copyBlock(this)">COPY</button>
+      </div>
+      <pre><span class="cmd">emerge</span> <span class="flag">--verbose</span> \
+    sys-kernel/gentoo-sources \
+    sys-kernel/dracut \
+    app-arch/zstd \
+    sys-boot/efibootmgr \
+    sys-kernel/linux-firmware</pre>
+    </div>
+
+    <div class="callout info">
+      <strong>Note:</strong> This will take a while. <code>linux-firmware</code> is large but needed for most hardware (NIC, GPU, WiFi, NVMe). If you want a minimal install you can skip it and add later.
+    </div>
+  </div>
+
+  <!-- ─── CONFIGURE ─── -->
+  <hr class="divider" id="configure">
+  <div class="section">
+    <div class="section-header">
+      <div class="step-badge">STEP 03</div>
+      <h2>Configure the Kernel</h2>
+    </div>
+    <p class="desc">Symlink the source and open menuconfig. The <code>localmodconfig</code> option pre-selects only drivers for hardware currently detected — highly recommended for a first build.</p>
+
+    <div class="cmd-block">
+      <div class="cmd-label">
+        <div class="dot-row"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div></div>
+        <span>configure-kernel.sh</span>
+        <button class="copy-btn" onclick="copyBlock(this)">COPY</button>
+      </div>
+      <pre><span class="prompt"># </span><span class="comment"># Confirm the symlink exists</span>
+<span class="cmd">ls</span> <span class="flag">-la</span> /usr/src/linux
+
+<span class="prompt"># </span><span class="comment"># Change into kernel source directory</span>
+<span class="cmd">cd</span> /usr/src/linux
+
+<span class="prompt"># </span><span class="comment"># RECOMMENDED: seed config from currently loaded modules (much faster first build)</span>
+<span class="cmd">make</span> localmodconfig
+
+<span class="prompt"># </span><span class="comment"># Then open the full config menu to review / add anything missing</span>
+<span class="cmd">make</span> menuconfig</pre>
+    </div>
+
+    <div class="callout">
+      <strong>Critical options to verify in menuconfig:</strong> EFI stub support (<code>CONFIG_EFI_STUB=y</code>), your filesystem driver (ext4/btrfs/xfs — built-in, not module), and your disk controller driver (AHCI/NVMe — built-in).
+    </div>
+
+    <p class="desc">Quick one-liner to confirm EFI stub is enabled after saving config:</p>
+    <div class="cmd-block">
+      <div class="cmd-label">
+        <div class="dot-row"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div></div>
+        <span>verify-config.sh</span>
+        <button class="copy-btn" onclick="copyBlock(this)">COPY</button>
+      </div>
+      <pre><span class="cmd">grep</span> <span class="flag">-E</span> <span class="str">"CONFIG_EFI_STUB|CONFIG_EFI=|CONFIG_FB_EFI"</span> /usr/src/linux/.config</pre>
+    </div>
+  </div>
+
+  <!-- ─── BUILD ─── -->
+  <hr class="divider" id="build">
+  <div class="section">
+    <div class="section-header">
+      <div class="step-badge">STEP 04</div>
+      <h2>Build &amp; Install the Kernel</h2>
+    </div>
+    <p class="desc">Build using all available CPU threads, then install modules and the kernel image. Replace <code>$(nproc)</code> if you want to limit CPU usage.</p>
+
+    <div class="cmd-block">
+      <div class="cmd-label">
+        <div class="dot-row"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div></div>
+        <span>build-kernel.sh</span>
+        <button class="copy-btn" onclick="copyBlock(this)">COPY</button>
+      </div>
+      <pre><span class="cmd">cd</span> /usr/src/linux
+
+<span class="prompt"># </span><span class="comment"># Build kernel + modules (uses all CPU cores)</span>
+<span class="cmd">make</span> <span class="flag">-j</span><span class="var">$(nproc)</span>
+
+<span class="prompt"># </span><span class="comment"># Install kernel modules to /lib/modules/</span>
+<span class="cmd">make</span> modules_install
+
+<span class="prompt"># </span><span class="comment"># Copy kernel image to /boot</span>
+<span class="cmd">make</span> install
+
+<span class="prompt"># </span><span class="comment"># Confirm kernel is in /boot</span>
+<span class="cmd">ls</span> <span class="flag">-lh</span> /boot/</pre>
+    </div>
+
+    <div class="callout info">
+      <strong>Expected output:</strong> You should see a <code>vmlinuz-X.XX.X-gentoo</code> file in <code>/boot</code>. The exact name is used in the next step.
+    </div>
+  </div>
+
+  <!-- ─── INITRAMFS ─── -->
+  <hr class="divider" id="initramfs">
+  <div class="section">
+    <div class="section-header">
+      <div class="step-badge">STEP 05</div>
+      <h2>Generate initramfs with dracut</h2>
+    </div>
+    <p class="desc">Dracut reads the kernel version from the <code>/usr/src/linux</code> symlink automatically. Run this block as-is — it will detect the version for you.</p>
+
+    <div class="cmd-block">
+      <div class="cmd-label">
+        <div class="dot-row"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div></div>
+        <span>dracut-initramfs.sh</span>
+        <button class="copy-btn" onclick="copyBlock(this)">COPY</button>
+      </div>
+      <pre><span class="prompt"># </span><span class="comment"># Read kver from the /usr/src/linux symlink</span>
+<span class="var">kver</span>=<span class="str">"$(readlink /usr/src/linux)"</span>
+<span class="var">kver</span>=<span class="str">"${kver#linux-}"</span>
+<span class="cmd">echo</span> <span class="str">"Kernel version: $kver"</span>
+
+<span class="prompt"># </span><span class="comment"># Mount EFI partition if not already mounted</span>
+<span class="cmd">mount</span> /boot/efi 2>/dev/null || <span class="cmd">echo</span> <span class="str">"already mounted or not in fstab yet — mount manually if needed"</span>
+
+<span class="prompt"># </span><span class="comment"># Copy kernel to EFI partition</span>
+<span class="var">kernel_file</span>=<span class="str">"$(find /boot \( -name 'vmlinuz-*' -or -name 'kernel-*' \) -printf '%f\n' | sort -V | tail -n 1)"</span>
+<span class="cmd">echo</span> <span class="str">"Using kernel: $kernel_file"</span>
+<span class="cmd">cp</span> <span class="str">"/boot/$kernel_file"</span> /boot/efi/vmlinuz.efi
+
+<span class="prompt"># </span><span class="comment"># Generate initramfs — output directly to EFI partition</span>
+<span class="cmd">dracut</span> \
+    <span class="flag">--kver</span>        <span class="str">"$kver"</span> \
+    <span class="flag">--zstd</span> \
+    <span class="flag">--no-hostonly</span> \
+    <span class="flag">--ro-mnt</span> \
+    <span class="flag">--add</span>         <span class="str">"bash"</span> \
+    <span class="flag">--force</span> \
+    /boot/efi/initramfs.img
+
+<span class="prompt"># </span><span class="comment"># Confirm both files exist on EFI partition</span>
+<span class="cmd">ls</span> <span class="flag">-lh</span> /boot/efi/</pre>
+    </div>
+
+    <div class="callout">
+      <strong>Using LUKS, RAID, Btrfs, or ZFS?</strong> Add the relevant module to the <code>--add</code> flag:
+      <br><br>
+      LUKS: <code>--add "bash crypt"</code>&nbsp;&nbsp;|&nbsp;&nbsp;
+      RAID: <code>--add "bash mdraid"</code>&nbsp;&nbsp;|&nbsp;&nbsp;
+      Btrfs: <code>--add "bash btrfs"</code>&nbsp;&nbsp;|&nbsp;&nbsp;
+      ZFS: <code>--add "bash zfs"</code>
+    </div>
+  </div>
+
+  <!-- ─── EFI ─── -->
+  <hr class="divider" id="efi">
+  <div class="section">
+    <div class="section-header">
+      <div class="step-badge green">STEP 06</div>
+      <h2>Create the EFI Boot Entry</h2>
+    </div>
+
+    <div class="callout danger">
+      <strong>Substitute your values here.</strong> Replace <code>YOUR_ROOT_UUID</code>, <code>/dev/sda</code> (EFI disk), <code>1</code> (EFI partition number), and <code>us</code> (keymap) before running.
+    </div>
+
+    <div class="cmd-block">
+      <div class="cmd-label">
+        <div class="dot-row"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div></div>
+        <span>efibootmgr.sh — EDIT BEFORE RUNNING</span>
+        <button class="copy-btn" onclick="copyBlock(this)">COPY</button>
+      </div>
+      <pre><span class="prompt"># </span><span class="comment"># ── EDIT THESE FOUR VALUES ────────────────────────────────────────</span>
+<span class="important">ROOT_UUID</span>=<span class="str">"xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"</span>   <span class="comment"># from blkid</span>
+<span class="important">EFI_DISK</span>=<span class="str">"/dev/sda"</span>                               <span class="comment"># parent disk (not partition)</span>
+<span class="important">EFI_PART_NUM</span>=<span class="str">"1"</span>                                  <span class="comment"># EFI partition number</span>
+<span class="important">KEYMAP</span>=<span class="str">"us"</span>                                       <span class="comment"># keyboard layout</span>
+<span class="comment"># ─────────────────────────────────────────────────────────────────</span>
+
+<span class="cmd">efibootmgr</span> \
+    <span class="flag">--verbose</span> \
+    <span class="flag">--create</span> \
+    <span class="flag">--disk</span>    <span class="str">"$EFI_DISK"</span> \
+    <span class="flag">--part</span>    <span class="str">"$EFI_PART_NUM"</span> \
+    <span class="flag">--label</span>   <span class="str">"gentoo"</span> \
+    <span class="flag">--loader</span>  <span class="str">'\vmlinuz.efi'</span> \
+    <span class="flag">--unicode</span> <span class="str">"initrd=\initramfs.img rd.vconsole.keymap=$KEYMAP root=UUID=$ROOT_UUID"</span></pre>
+    </div>
+
+    <p class="desc">Verify the entry was created and check boot order:</p>
+    <div class="cmd-block">
+      <div class="cmd-label">
+        <div class="dot-row"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div></div>
+        <span>verify-efi.sh</span>
+        <button class="copy-btn" onclick="copyBlock(this)">COPY</button>
+      </div>
+      <pre><span class="prompt"># </span><span class="comment"># List all EFI boot entries</span>
+<span class="cmd">efibootmgr</span> <span class="flag">--verbose</span>
+
+<span class="prompt"># </span><span class="comment"># Confirm kernel + initramfs are present on EFI partition</span>
+<span class="cmd">ls</span> <span class="flag">-lh</span> /boot/efi/</pre>
+    </div>
+
+    <div class="callout info">
+      <strong>NVMe drives:</strong> Your disk will be <code>/dev/nvme0n1</code> and the partition <code>/dev/nvme0n1p1</code>. Pass <code>--disk /dev/nvme0n1 --part 1</code> to efibootmgr.
+    </div>
+  </div>
+
+  <!-- ─── FSTAB ─── -->
+  <hr class="divider" id="fstab">
+  <div class="section">
+    <div class="section-header">
+      <div class="step-badge green">STEP 07</div>
+      <h2>Generate fstab</h2>
+    </div>
+    <p class="desc">Add entries for root, EFI, and optionally swap. Always use UUIDs — never device names like <code>/dev/sda1</code>.</p>
+
+    <div class="cmd-block">
+      <div class="cmd-label">
+        <div class="dot-row"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div></div>
+        <span>fstab.sh — EDIT BEFORE RUNNING</span>
+        <button class="copy-btn" onclick="copyBlock(this)">COPY</button>
+      </div>
+      <pre><span class="prompt"># </span><span class="comment"># ── EDIT THESE VALUES ─────────────────────────────────────────────</span>
+<span class="important">ROOT_UUID</span>=<span class="str">"xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"</span>   <span class="comment"># UUID of / partition</span>
+<span class="important">EFI_UUID</span>=<span class="str">"XXXX-XXXX"</span>                              <span class="comment"># UUID of EFI partition (short format)</span>
+<span class="important">ROOT_FS</span>=<span class="str">"ext4"</span>                                    <span class="comment"># ext4 / btrfs / xfs</span>
+<span class="comment"># ─────────────────────────────────────────────────────────────────</span>
+
+<span class="prompt"># </span><span class="comment"># Back up existing fstab</span>
+<span class="cmd">cp</span> /etc/fstab /etc/fstab.bak
+
+<span class="prompt"># </span><span class="comment"># Write root entry</span>
+<span class="cmd">printf</span> <span class="str">'%-46s  %-16s  %-6s  %-40s %s\n'</span> \
+    <span class="str">"UUID=$ROOT_UUID"</span> <span class="str">"/"</span> <span class="str">"$ROOT_FS"</span> <span class="str">"defaults,noatime"</span> <span class="str">"0 1"</span> \
+    >> /etc/fstab
+
+<span class="prompt"># </span><span class="comment"># Write EFI entry</span>
+<span class="cmd">printf</span> <span class="str">'%-46s  %-16s  %-6s  %-40s %s\n'</span> \
+    <span class="str">"UUID=$EFI_UUID"</span> <span class="str">"/boot/efi"</span> <span class="str">"vfat"</span> \
+    <span class="str">"defaults,noatime,fmask=0177,dmask=0077,noexec,nodev,nosuid"</span> <span class="str">"0 2"</span> \
+    >> /etc/fstab
+
+<span class="prompt"># </span><span class="comment"># Review the result</span>
+<span class="cmd">cat</span> /etc/fstab</pre>
+    </div>
+
+    <p class="desc">If you have a swap partition, add it too:</p>
+    <div class="cmd-block">
+      <div class="cmd-label">
+        <div class="dot-row"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div></div>
+        <span>fstab-swap.sh — optional</span>
+        <button class="copy-btn" onclick="copyBlock(this)">COPY</button>
+      </div>
+      <pre><span class="important">SWAP_UUID</span>=<span class="str">"xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"</span>   <span class="comment"># UUID of swap partition</span>
+
+<span class="cmd">printf</span> <span class="str">'%-46s  %-16s  %-6s  %-40s %s\n'</span> \
+    <span class="str">"UUID=$SWAP_UUID"</span> <span class="str">"none"</span> <span class="str">"swap"</span> <span class="str">"defaults,discard"</span> <span class="str">"0 0"</span> \
+    >> /etc/fstab</pre>
+    </div>
+  </div>
+
+  <!-- ─── REBOOT ─── -->
+  <hr class="divider" id="reboot">
+  <div class="section">
+    <div class="section-header">
+      <div class="step-badge green">STEP 08</div>
+      <h2>Final Checks &amp; Reboot</h2>
+    </div>
+    <p class="desc">Run this checklist before rebooting out of the chroot.</p>
+
+    <div class="cmd-block">
+      <div class="cmd-label">
+        <div class="dot-row"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div></div>
+        <span>preflight-check.sh</span>
+        <button class="copy-btn" onclick="copyBlock(this)">COPY</button>
+      </div>
+      <pre><span class="prompt"># </span><span class="comment"># 1. Kernel image on EFI partition</span>
+<span class="cmd">ls</span> <span class="flag">-lh</span> /boot/efi/vmlinuz.efi
+
+<span class="prompt"># </span><span class="comment"># 2. Initramfs on EFI partition</span>
+<span class="cmd">ls</span> <span class="flag">-lh</span> /boot/efi/initramfs.img
+
+<span class="prompt"># </span><span class="comment"># 3. EFI boot entry exists</span>
+<span class="cmd">efibootmgr</span> | <span class="cmd">grep</span> gentoo
+
+<span class="prompt"># </span><span class="comment"># 4. fstab looks sane</span>
+<span class="cmd">cat</span> /etc/fstab
+
+<span class="prompt"># </span><span class="comment"># 5. Network service is enabled (openrc)</span>
+<span class="cmd">rc-update</span> show | <span class="cmd">grep</span> <span class="flag">-E</span> <span class="str">"dhcpcd|networkmanager|net\."</span>
+
+<span class="prompt"># </span><span class="comment"># 6. Set root password if not done</span>
+<span class="cmd">passwd</span> root</pre>
+    </div>
+
+    <div class="cmd-block">
+      <div class="cmd-label">
+        <div class="dot-row"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div></div>
+        <span>exit-chroot-and-reboot.sh</span>
+        <button class="copy-btn" onclick="copyBlock(this)">COPY</button>
+      </div>
+      <pre><span class="prompt"># </span><span class="comment"># Exit chroot</span>
+<span class="cmd">exit</span>
+
+<span class="prompt"># </span><span class="comment"># Back on live environment — unmount everything</span>
+<span class="cmd">umount</span> <span class="flag">-l</span> /mnt/gentoo/dev{/shm,/pts,}
+<span class="cmd">umount</span> <span class="flag">-R</span> /mnt/gentoo
+
+<span class="prompt"># </span><span class="comment"># Reboot</span>
+<span class="cmd">reboot</span></pre>
+    </div>
+
+    <div class="callout success">
+      <strong>If boot fails:</strong> Boot back into the live USB, mount your root partition to <code>/mnt/gentoo</code>, chroot back in with <code>./install --chroot /mnt/gentoo</code> or manually, and re-check the efibootmgr entry and dracut initramfs.
+    </div>
+  </div>
+
+  <div class="success-box">
+    <h3>✓ Setup Complete</h3>
+    <p>If all preflight checks passed, your system should boot into Gentoo.<br>First boot may take slightly longer as services initialize for the first time.</p>
+  </div>
+
+</div>
+
+<script>
+function copyBlock(btn) {
+  const pre = btn.closest('.cmd-block').querySelector('pre');
+  const text = pre.innerText
+    .replace(/^# /gm, '')
+    .split('\n')
+    .filter(l => !l.startsWith('# ') && l.trim() !== '')
+    .join('\n');
+
+  // Actually copy the raw text content (with prompt chars stripped)
+  const raw = pre.textContent;
+  navigator.clipboard.writeText(raw).then(() => {
+    btn.textContent = 'COPIED!';
+    btn.classList.add('copied');
+    setTimeout(() => {
+      btn.textContent = 'COPY';
+      btn.classList.remove('copied');
+    }, 1800);
+  });
+}
+</script>
+
+</body>
+</html>
